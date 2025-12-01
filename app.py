@@ -1,5 +1,4 @@
-# 1. 설치 (가장 먼저 실행)
-!pip install streamlit prophet plotly pyngrok
+
 
 # 2. 실행 코드 (app.py 생성)
 import os
@@ -378,3 +377,4 @@ try:
     print(f"\n✨ 접속 링크 ✨\n{public_url}")
 except Exception as e:
     print(f"오류: {e}")
+
