@@ -20,253 +20,164 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 1. 디자인 (CSS) - 기능 대폭 강화 (애니메이션, 고급 스타일링)
+# 1. 디자인 (CSS) - 깔끔한 화이트 & 브랜드 컬러 테마 적용
 # ---------------------------------------------------------
 st.markdown("""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    /* ------------------------------------------------------- */
-    /* [Global] 변수 및 기본 설정 */
-    /* ------------------------------------------------------- */
+    /* 기본 폰트 및 변수 설정 */
     :root {
         --primary-color: #5361F2;
-        --primary-light: #E0E7FF;
-        --primary-dark: #404ECA;
         --bg-color: #FFFFFF;
-        --bg-secondary: #F8F9FA;
         --text-color: #333333;
-        --text-sub: #666666;
+        --gray-light: #F8F9FA;
         --border-color: #EEEEEE;
-        --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
-        --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
-        --shadow-lg: 0 8px 24px rgba(83, 97, 242, 0.12);
     }
     
     html, body, [class*="css"] { 
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+        font-family: 'Pretendard', sans-serif; 
         color: var(--text-color);
-        scroll-behavior: smooth;
     }
     
-    /* 전체 배경 */
+    /* 메인 배경 화이트로 설정 */
     .stApp { background-color: var(--bg-color); }
     
-    /* 스크롤바 커스텀 */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-
-    /* ------------------------------------------------------- */
-    /* [Animations] 애니메이션 정의 */
-    /* ------------------------------------------------------- */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .element-container, .stMarkdown, .stPlotlyChart {
-        animation: fadeIn 0.5s ease-out forwards;
-    }
-
-    /* ------------------------------------------------------- */
-    /* [Sidebar] 사이드바 스타일링 */
-    /* ------------------------------------------------------- */
+    /* 사이드바 스타일 */
     [data-testid="stSidebar"] { 
-        background-color: var(--bg-secondary); 
-        border-right: 1px solid var(--border-color);
+        background-color: var(--gray-light); 
+        border-right: 1px solid var(--border-color); 
     }
     
-    /* 사이드바 네비게이션 컨테이너 */
+    /* Hero Box (상단 배너) - 심플한 단색/미세 그라데이션 */
+    .hero-box {
+        background: linear-gradient(135deg, #5361F2, #6976F5);
+        padding: 40px 30px; 
+        border-radius: 20px; 
+        color: white;
+        margin-bottom: 30px; 
+        box-shadow: 0 10px 30px rgba(83, 97, 242, 0.15); /* 부드러운 그림자 */
+    }
+    .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; color: white; }
+    .hero-subtitle { font-size: 1.1rem; opacity: 0.9; font-weight: 400; color: white; }
+    
+    /* Metric Card - 깔끔한 보더 스타일 */
+    .metric-card {
+        background: white; 
+        border: 1px solid var(--border-color);
+        border-radius: 16px; 
+        padding: 24px;
+        text-align: center;
+        transition: all 0.2s ease-in-out;
+    }
+    .metric-card:hover { 
+        border-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(83, 97, 242, 0.1);
+    }
+    .metric-value { font-size: 2rem; font-weight: 800; color: var(--primary-color); }
+    .metric-label { font-size: 0.95rem; color: #666; margin-top: 8px; font-weight: 500; }
+    
+    /* Expander 스타일 */
+    div[data-testid="stExpander"] { 
+        border: 1px solid var(--border-color); 
+        box-shadow: none; 
+        border-radius: 12px; 
+        background: white; 
+    }
+    
+    /* [Navigation] 사이드바 메뉴 스타일링 (핵심) */
     section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
         gap: 8px;
-        padding: 0 5px;
     }
     
-    /* 메뉴 아이템 기본 스타일 */
+    /* 기본 메뉴 항목 */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
-        background-color: transparent;
-        padding: 12px 16px;
+        background-color: transparent; /* 투명 */
+        padding: 12px 16px; 
         border-radius: 12px;
         border: 1px solid transparent;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
+        margin-bottom: 0px;
         display: flex;
         align-items: center;
-        margin-bottom: 2px;
+        width: 100%;
         cursor: pointer;
-        position: relative;
-        overflow: hidden;
+        color: #555; /* 기본 글씨색 */
     }
     
-    /* 메뉴 아이템 호버 효과 */
+    /* 마우스 호버 시 */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {
-        background-color: white;
-        box-shadow: var(--shadow-sm);
-        transform: translateX(4px);
+        background-color: #EBEFFF; /* 아주 연한 브랜드 컬러 */
         color: var(--primary-color);
     }
 
-    /* 선택된 메뉴 (Active) */
+    /* 선택된 메뉴 항목 (Active) - 브랜드 컬러 배경 + 흰색 글씨 */
     section[data-testid="stSidebar"] .stRadio label[data-checked="true"] {
-        background: var(--primary-color) !important;
-        box-shadow: var(--shadow-md);
-        transform: scale(1.02);
+        background-color: var(--primary-color) !important;
+        box-shadow: 0 4px 12px rgba(83, 97, 242, 0.25);
     }
     
+    /* 선택된 항목의 텍스트 색상 */
     section[data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:last-child {
         color: white !important;
         font-weight: 700;
-        letter-spacing: -0.3px;
     }
     
-    /* 라디오 버튼 원형 제거 */
+    /* 라디오 버튼 원형(Circle) 및 공백 완전 제거 */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
         display: none !important;
+        width: 0px !important;
+        margin: 0px !important;
     }
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:last-child {
-        margin-left: 0 !important;
-        font-size: 0.95rem;
+        margin-left: 0px !important; 
+        font-size: 1rem;
     }
 
-    /* ------------------------------------------------------- */
-    /* [Components] 메인 컴포넌트 스타일 */
-    /* ------------------------------------------------------- */
-    
-    /* Hero Box */
-    .hero-box {
-        background: linear-gradient(135deg, #5361F2 0%, #7B87F7 100%);
-        padding: 48px 36px;
-        border-radius: 24px;
-        color: white;
-        margin-bottom: 40px;
-        box-shadow: 0 20px 40px rgba(83, 97, 242, 0.2);
-        position: relative;
-        overflow: hidden;
-    }
-    /* Hero Box 배경 장식 (유리 질감 효과) */
-    .hero-box::before {
-        content: '';
-        position: absolute;
-        top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-        pointer-events: none;
-    }
-    .hero-title { font-size: 2.8rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .hero-subtitle { font-size: 1.15rem; opacity: 0.95; font-weight: 400; line-height: 1.5; }
-    
-    /* Metric Card */
-    .metric-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
-        padding: 28px;
-        text-align: center;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .metric-card:hover {
-        border-color: transparent;
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-    .metric-value { font-size: 2.2rem; font-weight: 800; color: var(--primary-color); letter-spacing: -1px; }
-    .metric-label { font-size: 0.9rem; color: var(--text-sub); margin-top: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* Buttons */
+    /* 버튼 스타일 (Primary & Secondary) */
     div.stButton > button {
-        border-radius: 10px;
+        border-radius: 8px;
         font-weight: 600;
         border: 1px solid var(--primary-color);
         background-color: white;
         color: var(--primary-color);
-        padding: 0.6rem 1.2rem;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s;
     }
     div.stButton > button:hover {
         background-color: var(--primary-color);
         color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(83, 97, 242, 0.2);
     }
-    div.stButton > button:active { transform: translateY(0); }
-
-    /* Form Submit Button */
+    
+    /* 폼 제출 버튼 등 주요 버튼 */
     div[data-testid="stForm"] button {
-        background: linear-gradient(135deg, #5361F2, #404ECA);
+        background-color: var(--primary-color);
         color: white;
         border: none;
-        width: 100%;
-        padding: 0.7rem;
     }
     div[data-testid="stForm"] button:hover {
-        box-shadow: 0 8px 16px rgba(83, 97, 242, 0.3);
+        background-color: #404ECA; /* 조금 더 진한 색 */
     }
 
-    /* Input Fields (Selectbox, TextInput etc.) */
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
-        border-radius: 10px;
-        border-color: #E0E0E0;
-        background-color: #FAFAFA;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    div[data-baseweb="select"] > div:hover, div[data-baseweb="input"] > div:hover {
-        border-color: var(--primary-light);
-    }
-    div[data-baseweb="select"] > div:focus-within, div[data-baseweb="input"] > div:focus-within {
-        border-color: var(--primary-color);
-        background-color: white;
-        box-shadow: 0 0 0 3px rgba(83, 97, 242, 0.1);
-    }
-
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        border-bottom: 2px solid var(--border-color);
-        padding-bottom: 0px;
-    }
+    /* 탭(Tabs) 스타일 */
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
     .stTabs [data-baseweb="tab"] {
         height: 50px;
-        font-size: 1rem;
-        color: var(--text-sub);
-        font-weight: 600;
-        border: none;
-        background: transparent;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0 0;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        color: #888;
+        font-weight: 500;
     }
     .stTabs [aria-selected="true"] {
-        color: var(--primary-color) !important;
-        border-bottom: 3px solid var(--primary-color) !important;
-    }
-
-    /* Expander */
-    div[data-testid="stExpander"] {
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
         background-color: white;
-        transition: box-shadow 0.2s;
+        color: var(--primary-color) !important;
+        font-weight: 800;
+        border-bottom: 2px solid var(--primary-color) !important;
     }
-    div[data-testid="stExpander"]:hover {
-        box-shadow: var(--shadow-md);
-    }
-    
-    /* Chat Message Styles */
-    div[data-testid="stChatMessage"] {
-        background-color: transparent;
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid transparent;
-    }
-    div[data-testid="stChatMessage"][data-author="assistant"] {
-        background-color: #F8F9FF; /* 아주 연한 블루 */
-        border-color: #E0E7FF;
-    }
-    div[data-testid="stChatMessage"][data-author="user"] {
-        background-color: #FDFDFD;
-        border-color: #EEEEEE;
-    }
-    
     </style>
 """, unsafe_allow_html=True)
 
@@ -286,7 +197,8 @@ def load_data():
             # 소계, 합계 제거
             df_clean = df[~df['급별(2)'].isin(['소계', '합계'])].copy()
             
-            # '제N급' -> 'N급'으로 변경
+            # [수정] '제N급' -> 'N급'으로 변경 (데이터 정제)
+            # '제' 글자를 제거하고 공백을 없앱니다.
             df_clean['급별(1)'] = df_clean['급별(1)'].astype(str).str.replace('제', '').str.strip()
             
             # 1. 전체 질병 리스트
@@ -296,6 +208,7 @@ def load_data():
             raw_grades = df_clean['급별(1)'].unique().tolist()
             
             def grade_sort_key(grade):
+                # "1급", "2급" 등 숫자만 추출하여 정렬 키로 사용
                 numbers = re.findall(r'\d+', str(grade))
                 return int(numbers[0]) if numbers else 999
             
@@ -317,10 +230,10 @@ with st.sidebar:
     # 로고 영역
     st.markdown("""
         <div style="display: flex; align-items: center; margin-bottom: 30px; padding-left: 10px;">
-            <span style="font-size: 3.5rem; margin-right: 12px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🏥</span>
+            <span style="font-size: 3.5rem; margin-right: 12px; line-height: 1;">🏥</span>
             <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 1.6rem; font-weight: 800; color: #333; letter-spacing: -0.5px;">MediScope</span>
-                <span style="font-size: 0.75rem; color: #888; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;">AI Infection Control</span>
+                <span style="font-size: 1.6rem; font-weight: 800; color: #333;">MediScope</span>
+                <span style="font-size: 0.8rem; color: #888; font-weight: 500; letter-spacing: 1px;">AI INFECTION CONTROL</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -342,8 +255,8 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("""
-        <div style='text-align: center; color: #AAA; font-size: 0.75rem; margin-top: 20px; line-height: 1.5;'>
-        © 2025 <b>MediScope AI</b><br>
+        <div style='text-align: center; color: #AAA; font-size: 0.75rem; margin-top: 20px;'>
+        © 2025 MediScope AI<br>
         All rights reserved.
         </div>
     """, unsafe_allow_html=True)
@@ -358,6 +271,7 @@ with st.sidebar:
 # ==========================================
 if menu == "🏠 홈":
     
+    # [위치 변경 로직]
     default_grade = all_grades[0] if all_grades else "데이터 없음"
     current_grade = st.session_state.get('home_grade', default_grade)
     
@@ -372,15 +286,15 @@ if menu == "🏠 홈":
     if current_disease not in filtered_diseases and filtered_diseases:
         current_disease = filtered_diseases[0]
 
-    # Hero Section
+    # 1. Hero Section
     st.markdown(f"""
         <div class="hero-box">
             <div class="hero-title">MediScope AI Insights</div>
-            <div class="hero-subtitle"><b>{current_grade} {current_disease}</b> 발생 추이 및 AI 기반 예방 정보</div>
+            <div class="hero-subtitle"><b>{current_grade} {current_disease}</b> 발생 추이 및 예방 정보</div>
         </div>
     """, unsafe_allow_html=True)
 
-    # Filter
+    # 2. 하단 필터
     st.markdown("### 🔍 감염병 현황 조회")
     col_filter1, col_filter2 = st.columns([1, 2])
     
@@ -394,9 +308,9 @@ if menu == "🏠 홈":
         except: d_idx = 0
         selected_disease = st.selectbox("2. 전염병 선택", filtered_diseases, index=d_idx, key='home_disease')
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    # Metrics
+    # 3. 메트릭 카드
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
@@ -422,7 +336,7 @@ if menu == "🏠 홈":
 
     st.markdown("---")
     
-    # Graph
+    # 4. 그래프
     st.subheader(f"📈 {selected_disease} 월별 발생 추이")
     
     dates = pd.date_range(start='2024-01-01', periods=18, freq='M')
@@ -431,10 +345,10 @@ if menu == "🏠 홈":
     
     fig = px.line(chart_df, x='Date', y='Patients', markers=True, line_shape='spline')
     fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'})
-    fig.update_traces(line_color='#5361F2', line_width=4, marker=dict(size=8, border=dict(width=2, color='white')))
+    fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Tips
+    # 5. 예방 Tip 섹션
     st.markdown("---")
     st.subheader(f"🩹 {selected_disease} 예방 및 행동 요령 (Tip)")
 
@@ -443,37 +357,37 @@ if menu == "🏠 홈":
         if any(k in d_name for k in ["결핵", "인플루엔자", "코로나", "홍역", "수두", "백일해", "유행성이하선염", "성홍열", "폐렴구균", "엠폭스"]):
             return (
                 "마스크 착용 및 기침 예절",
-                "- 사람이 많은 곳에서는 반드시 마스크를 착용하세요.<br>- 기침이나 재채기 시 옷소매로 입과 코를 가리세요.<br>- 씻지 않은 손으로 눈, 코, 입을 만지지 마세요.",
+                "- 사람이 많은 곳에서는 반드시 마스크를 착용하세요.\n- 기침이나 재채기 시 옷소매로 입과 코를 가리세요.\n- 씻지 않은 손으로 눈, 코, 입을 만지지 마세요.",
                 "실내 환기 및 격리",
-                "- 하루 3회 이상, 10분씩 실내 환기를 시켜주세요.<br>- 발열 및 호흡기 증상 발생 시 등교/출근을 멈추고 집에서 휴식하세요."
+                "- 하루 3회 이상, 10분씩 실내 환기를 시켜주세요.\n- 발열 및 호흡기 증상 발생 시 등교/출근을 멈추고 집에서 휴식하세요."
             )
         elif any(k in d_name for k in ["콜레라", "장티푸스", "파라티푸스", "세균성이질", "장출혈성", "A형간염", "비브리오", "식중독", "노로바이러스"]):
             return (
                 "안전한 물과 음식 섭취",
-                "- 물은 반드시 끓여 마시고, 음식은 충분히 익혀 드세요.<br>- 채소와 과일은 흐르는 물에 깨끗이 씻어 껍질을 벗겨 드세요.<br>- 조리 도구는 끓는 물이나 소독제로 소독하세요.",
+                "- 물은 반드시 끓여 마시고, 음식은 충분히 익혀 드세요.\n- 채소와 과일은 흐르는 물에 깨끗이 씻어 껍질을 벗겨 드세요.\n- 조리 도구는 끓는 물이나 소독제로 소독하세요.",
                 "철저한 손 씻기",
-                "- 화장실 사용 후, 조리 전, 식사 전 흐르는 물에 비누로 30초 이상 손을 씻으세요.<br>- 설사 증상이 있는 경우 음식을 조리하지 마세요."
+                "- 화장실 사용 후, 조리 전, 식사 전 흐르는 물에 비누로 30초 이상 손을 씻으세요.\n- 설사 증상이 있는 경우 음식을 조리하지 마세요."
             )
         elif any(k in d_name for k in ["말라리아", "일본뇌염", "쯔쯔가무시", "뎅기열", "지카", "열", "진드기"]):
             return (
                 "피부 노출 최소화",
-                "- 야외 활동 시 긴 소매, 긴 바지를 착용하여 피부 노출을 줄이세요.<br>- 진드기/모기 기피제를 사용하세요.<br>- 풀밭 위에 옷을 벗어두거나 바로 눕지 마세요.",
+                "- 야외 활동 시 긴 소매, 긴 바지를 착용하여 피부 노출을 줄이세요.\n- 진드기/모기 기피제를 사용하세요.\n- 풀밭 위에 옷을 벗어두거나 바로 눕지 마세요.",
                 "환경 관리 및 예방접종",
-                "- 집 주변 웅덩이 등 모기 서식지를 제거하세요.<br>- 야외 활동 후 즉시 샤워하고 입었던 옷은 세탁하세요.<br>- 유행 지역 방문 전 예방접종 여부를 확인하세요."
+                "- 집 주변 웅덩이 등 모기 서식지를 제거하세요.\n- 야외 활동 후 즉시 샤워하고 입었던 옷은 세탁하세요.\n- 유행 지역 방문 전 예방접종 여부를 확인하세요."
             )
         elif any(k in d_name for k in ["B형간염", "C형간염", "매독", "후천성면역결핍증"]):
             return (
                 "개인 위생용품 공유 금지",
-                "- 칫솔, 면도기, 손톱깎이 등 혈액이 묻을 수 있는 용품은 절대 공유하지 마세요.<br>- 문신, 피어싱 등은 반드시 소독된 도구를 사용하는 곳에서 받으세요.",
+                "- 칫솔, 면도기, 손톱깎이 등 혈액이 묻을 수 있는 용품은 절대 공유하지 마세요.\n- 문신, 피어싱 등은 반드시 소독된 도구를 사용하는 곳에서 받으세요.",
                 "정기 검진 및 안전 수칙",
-                "- 정기적인 검진을 통해 감염 여부를 확인하세요.<br>- 의료 종사자는 주사 바늘 찔림 등 혈액 노출 사고에 주의하세요."
+                "- 정기적인 검진을 통해 감염 여부를 확인하세요.\n- 의료 종사자는 주사 바늘 찔림 등 혈액 노출 사고에 주의하세요."
             )
         else:
             return (
                 "일상 속 위생 수칙 준수",
-                "- 흐르는 물에 30초 이상 비누로 손 씻기를 생활화하세요.<br>- 기침할 땐 옷소매로 입과 코를 가리세요.",
+                "- 흐르는 물에 30초 이상 비누로 손 씻기를 생활화하세요.\n- 기침할 땐 옷소매로 입과 코를 가리세요.",
                 "면역력 강화 및 건강 관리",
-                "- 규칙적인 운동과 충분한 수면으로 면역력을 높이세요.<br>- 의심 증상 발생 시 즉시 의료기관을 방문하여 진료를 받으세요."
+                "- 규칙적인 운동과 충분한 수면으로 면역력을 높이세요.\n- 의심 증상 발생 시 즉시 의료기관을 방문하여 진료를 받으세요."
             )
 
     tip_t1, tip_d1, tip_t2, tip_d2 = get_custom_tips(selected_disease)
@@ -482,11 +396,11 @@ if menu == "🏠 홈":
         col_tip1, col_tip2 = st.columns(2)
         with col_tip1:
             st.markdown(f"**1. {tip_t1}**")
-            st.markdown(tip_d1, unsafe_allow_html=True)
+            st.markdown(tip_d1)
         with col_tip2:
             st.markdown(f"**2. {tip_t2}**")
-            st.markdown(tip_d2, unsafe_allow_html=True)
-        st.info(f"※ 본 정보는 **{selected_disease}**의 감염 경로와 특성을 고려한 맞춤형 정보입니다.")
+            st.markdown(tip_d2)
+        st.info(f"※ 본 정보는 **{selected_disease}**의 감염 경로와 특성을 고려한 맞춤형 정보입니다. (출처: 질병관리청 지침 기반 재구성)")
 
 
 # ==========================================
@@ -567,7 +481,7 @@ elif menu == "💬 AI 의료 상담":
 
 
 # ==========================================
-# [MENU 3] 📊 AI 분석 센터
+# [MENU 3] 📊 AI 분석 센터 (개선됨)
 # ==========================================
 elif menu == "📊 AI 분석 센터":
     st.subheader("📊 Future AI Analysis (2026)")
@@ -584,7 +498,9 @@ elif menu == "📊 AI 분석 센터":
 
     st.markdown("---")
     
-    # Data Simulation
+    # ----------------------------------------------------
+    # 데이터 시뮬레이션
+    # ----------------------------------------------------
     try:
         row = df[df['급별(2)'] == ai_disease]
         monthly_2024 = row.iloc[0, 3:15].values.astype(float)
@@ -618,9 +534,12 @@ elif menu == "📊 AI 분석 센터":
     df_sim = generate_extended_data(monthly_2024)
     df_sim['Date'] = pd.to_datetime(df_sim['Date'])
 
-    # Tabs
+    # ----------------------------------------------------
+    # 탭 구성
+    # ----------------------------------------------------
     tab1, tab2, tab3 = st.tabs(["📈 2026년 예측", "🔄 계절성 패턴", "🔥 발생 히트맵"])
 
+    # [Tab 1] 2026년 예측
     with tab1:
         st.markdown(f"**{ai_disease}**의 빅데이터 기반 **2026년 발생 예측**입니다.")
         
@@ -663,6 +582,7 @@ elif menu == "📊 AI 분석 센터":
         st.plotly_chart(fig_pred, use_container_width=True)
         st.caption("※ Prophet 알고리즘을 활용한 시계열 분석 결과입니다.")
 
+    # [Tab 2] 계절성 패턴
     with tab2:
         st.markdown(f"**{ai_disease}**의 월별 평균 발생 패턴입니다.")
         monthly_avg = df_sim[df_sim['Year'] <= 2025].groupby('Month')['Patients'].mean().reset_index()
@@ -696,6 +616,7 @@ elif menu == "📊 AI 분석 센터":
         max_month = monthly_avg.loc[monthly_avg['Patients'].idxmax(), 'Month']
         st.info(f"📊 분석 결과, **{ai_disease}**은(는) 주로 **{max_month}월**에 발생 빈도가 가장 높게 나타납니다.")
 
+    # [Tab 3] 발생 히트맵
     with tab3:
         st.markdown(f"**{ai_disease}**의 연도별/월별 발생 강도 히트맵입니다.")
         
@@ -703,7 +624,7 @@ elif menu == "📊 AI 분석 센터":
             z=df_sim['Patients'],
             x=df_sim['Month'],
             y=df_sim['Year'],
-            colorscale='Blues',
+            colorscale='Blues', # 깔끔한 블루톤으로 변경
             hoverongaps=False
         ))
         
