@@ -49,26 +49,58 @@ st.markdown("""
     
     div[data-testid="stExpander"] { border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-radius: 10px; background: white; }
     
-    /* [NEW] 사이드바 메뉴 꾸미기 (라디오 버튼 숨기기 + 카드 스타일) */
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-        gap: 10px;
+    /* [수정됨] 사이드바 메뉴 스타일 개선 (공백 제거 및 정렬 최적화) */
+    /* 라디오 버튼 그룹 간격 */
+    section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
+        gap: 12px;
     }
-    [data-testid="stSidebar"] [data-testid="stRadio"] label {
-        background-color: #F3F4F6;
-        padding: 15px;
+    
+    /* 각 메뉴 항목(라디오 옵션) 스타일 */
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
+        background-color: #F8F9FA;
+        padding: 12px 16px; /* 내부 여백 조정 */
         border-radius: 12px;
         border: 1px solid transparent;
-        transition: all 0.3s ease;
-        margin-bottom: 5px;
+        transition: all 0.2s ease;
+        margin-bottom: 0px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        cursor: pointer;
     }
-    [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-        background-color: #E0E7FF;
-        border-color: #5361F2;
-        transform: translateX(5px);
+    
+    /* 라디오 버튼 원형(Circle) 완전 제거 및 공간 삭제 */
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+        width: 0px !important;
+        margin: 0px !important;
     }
-    /* 라디오 버튼의 동그라미 숨기기 (Streamlit 구조 의존) */
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
-        display: none;
+    
+    /* 텍스트 영역 스타일 (왼쪽 공백 제거) */
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:last-child {
+        margin-left: 0px !important; 
+        font-weight: 500;
+        font-size: 1rem;
+        color: #495057;
+    }
+
+    /* 선택된 항목 스타일 (Highlight) */
+    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] {
+        background-color: #E0E7FF; /* 연한 보라색 배경 */
+        border: 1px solid #5361F2;
+        box-shadow: 0 2px 4px rgba(83, 97, 242, 0.1);
+    }
+    
+    /* 선택된 항목의 텍스트 색상 */
+    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:last-child {
+        color: #5361F2 !important;
+        font-weight: 700;
+    }
+    
+    /* 마우스 호버 효과 */
+    section[data-testid="stSidebar"] .stRadio label:hover {
+        background-color: #F0F4FF;
+        transform: translateX(4px);
     }
     </style>
 """, unsafe_allow_html=True)
