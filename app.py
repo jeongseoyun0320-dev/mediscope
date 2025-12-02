@@ -5,11 +5,10 @@ from prophet import Prophet
 import plotly.graph_objs as go
 import plotly.express as px
 import time
-import random
 from datetime import datetime, timedelta
 
 # ---------------------------------------------------------
-# [필수] 앱 설정
+# [앱 설정]
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="MediScope: AI 감염병 플랫폼",
@@ -52,47 +51,67 @@ st.markdown("""
         height: 50px; font-weight: bold; border: none; width: 100%;
     }
     .stButton > button:hover { background-color: #3845b5; }
+    
+    .chat-bubble { padding: 15px; border-radius: 15px; margin-bottom: 10px; font-size: 0.95rem; }
     </style>
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. 데이터 로드 (2025년 강제 변환 & 안전 로딩)
+# 2. 데이터 로드 (모든 등급 포함 & 캐시 제거)
 # ---------------------------------------------------------
-@st.cache_data
 def get_disease_data():
     file_path = "법정감염병_월별_신고현황_20251201171522.csv"
     
-    # 비상용 모의 데이터 (CSV 읽기 실패 시 작동)
+    # [수정] 비상용 데이터에 1급~4급 모두 포함 (파일 로드 실패 시에도 나옴)
     def generate_mock():
         dates = pd.date_range('2025-01-01', '2025-12-01', freq='MS')
         mock = []
-        for d in ["인플루엔자", "수두", "A형간염", "백일해"]:
+        disease_list = [
+            ("제1급", "에볼라바이러스병"), ("제1급", "두창"), ("제1급", "페스트"),
+            ("제2급", "결핵"), ("제2급", "수두"), ("제2급", "홍역"), ("제2급", "A형간염"), ("제2급", "백일해"),
+            ("제3급", "파상풍"), ("제3급", "B형간염"), ("제3급", "일본뇌염"), ("제3급", "말라리아"),
+            ("제4급", "인플루엔자"), ("제4급", "수족구병"), ("제4급", "급성호흡기감염증")
+        ]
+        for c, d in disease_list:
             for date in dates:
-                val = np.random.randint(500, 2500)
-                if date.month in [12, 1, 2]: val *= 1.5 
-                mock.append([date, "2급", d, int(val)])
+                # 급수별 발생 빈도 차등
+                if "1급" in c: val = np.random.randint(0, 2)
+                elif "4급" in c: val = np.random.randint(1000, 5000)
+                else: val = np.random.randint(10, 500)
+                
+                if date.month in [11, 12, 1, 2]: val = int(val * 1.5)
+                mock.append([date, c, d, int(val)])
         return pd.DataFrame(mock, columns=['ds', 'Class', 'Disease', 'y'])
 
     try:
-        df = pd.read_csv(file_path, header=None, encoding='cp949')
+        # 파일 읽기 (인코딩 2가지 시도)
+        try:
+            df = pd.read_csv(file_path, header=None, encoding='cp949')
+        except:
+            df = pd.read_csv(file_path, header=None, encoding='utf-8')
+        
         df_body = df.iloc[2:].copy()
         
         # 컬럼명 강제 지정
-        df_body = df_body.iloc[:, :15]
-        col_names = ['Class', 'Disease', 'Total'] + [str(i) for i in range(1, 13)]
-        df_body.columns = col_names
-        
+        if df_body.shape[1] >= 15:
+            df_body = df_body.iloc[:, :15]
+            col_names = ['Class', 'Disease', 'Total'] + [str(i) for i in range(1, 13)]
+            df_body.columns = col_names
+        else:
+            return generate_mock()
+            
         df_body = df_body[df_body['Disease'] != '소계']
         
         # Melt
         df_melted = df_body.melt(id_vars=['Class', 'Disease'], value_vars=[str(i) for i in range(1,13)], var_name='Month', value_name='Count')
         
-        # [핵심] 2025년으로 날짜 고정
+        # 2025년 날짜 고정
         df_melted['ds'] = pd.to_datetime('2025-' + df_melted['Month'].astype(str) + '-01', errors='coerce')
         
         def clean_count(x):
-            if str(x).strip() in ['-', '', 'nan']: return 0
-            try: return int(str(x).replace(',', ''))
+            s = str(x).strip()
+            if s in ['-', '', 'nan', 'None']: return 0
+            try: return int(s.replace(',', ''))
             except: return 0
             
         df_melted['y'] = df_melted['Count'].apply(clean_count)
@@ -102,6 +121,7 @@ def get_disease_data():
         return df_final[['ds', 'Class', 'Disease', 'y']]
 
     except Exception as e:
+        # 파일이 없거나 에러나면 모든 급수가 포함된 비상용 데이터 반환
         return generate_mock()
 
 data = get_disease_data()
@@ -117,23 +137,18 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.markdown("---")
-    menu = st.radio("MENU", [
-        "🏠 홈 (2025 현황)", 
-        "💬 AI 의료 상담 (ChatBot)", 
-        "📊 AI 분석 센터 (2026 예측)", 
-        "👤 My Page (건강 리포트)"
-    ])
+    menu = st.radio("MENU", ["🏠 홈", "💬 AI 의료 상담", "📊 AI 분석 센터", "👤 My Page"])
     st.markdown("---")
     if st.button("🔄 시스템 리셋"):
-        st.cache_data.clear()
-        st.rerun()
+        try: st.rerun()
+        except: pass
 
 # ---------------------------------------------------------
 # 4. 기능 페이지
 # ---------------------------------------------------------
 
 # [PAGE 1] 홈
-if menu == "🏠 홈 (2025 현황)":
+if menu == "🏠 홈":
     st.markdown("""
         <div class="hero-box">
             <div class="hero-title">MediScope Dashboard</div>
@@ -142,25 +157,28 @@ if menu == "🏠 홈 (2025 현황)":
     """, unsafe_allow_html=True)
     
     if not data.empty:
-        st.subheader("🔥 Monthly Hot Issue (2025년 12월 기준)")
+        st.subheader("🔥 Monthly Hot Issue (12월 기준)")
         latest = data['ds'].max()
         prev = latest - pd.DateOffset(months=1)
-        top3 = data[data['ds'] == latest].sort_values('y', ascending=False).head(3)
+        top3 = data[(data['ds'] == latest) & (data['y'] > 0)].sort_values('y', ascending=False).head(3)
         
-        cols = st.columns(3)
-        for idx, (i, row) in enumerate(top3.iterrows()):
-            prev_row = data[(data['Disease'] == row['Disease']) & (data['ds'] == prev)]
-            diff = row['y'] - prev_row['y'].values[0] if not prev_row.empty else 0
-            diff_str = f"▲ {diff:,}" if diff > 0 else f"▼ {abs(diff):,}"
-            trend_col = "#E74C3C" if diff > 0 else "#27AE60"
-            
-            with cols[idx]:
-                st.markdown(f"""<div class="stat-card">
-                    <div style="font-weight:bold; color:#E74C3C;">🚨 {row['Class']} 경보</div>
-                    <div style="font-size:1.3rem; font-weight:800; margin:10px 0;">{row['Disease']}</div>
-                    <div style="font-size:2rem; font-weight:900; color:#5361F2;">{row['y']:,}<span style="font-size:1rem; color:#aaa;">명</span></div>
-                    <div style="color:#666; font-size:0.9rem;">전월 대비 <span style="color:{trend_col}; font-weight:bold;">{diff_str}</span></div>
-                </div>""", unsafe_allow_html=True)
+        if top3.empty:
+            st.info("현재 집계된 주요 데이터가 없습니다.")
+        else:
+            cols = st.columns(3)
+            for idx, (i, row) in enumerate(top3.iterrows()):
+                prev_row = data[(data['Disease'] == row['Disease']) & (data['ds'] == prev)]
+                diff = row['y'] - prev_row['y'].values[0] if not prev_row.empty else 0
+                diff_str = f"▲ {diff:,}" if diff > 0 else f"▼ {abs(diff):,}"
+                trend_col = "#E74C3C" if diff > 0 else "#27AE60"
+                
+                with cols[idx]:
+                    st.markdown(f"""<div class="stat-card">
+                        <div style="font-weight:bold; color:#E74C3C;">🚨 {row['Class']} 경보</div>
+                        <div style="font-size:1.3rem; font-weight:800; margin:10px 0;">{row['Disease']}</div>
+                        <div style="font-size:2rem; font-weight:900; color:#5361F2;">{row['y']:,}<span style="font-size:1rem; color:#aaa;">명</span></div>
+                        <div style="color:#666; font-size:0.9rem;">전월 대비 <span style="color:{trend_col}; font-weight:bold;">{diff_str}</span></div>
+                    </div>""", unsafe_allow_html=True)
 
     st.write(""); st.subheader("🛡️ AI 예방 브리핑")
     c1, c2 = st.columns(2)
@@ -189,7 +207,7 @@ if menu == "🏠 홈 (2025 현황)":
                 st.plotly_chart(fig, use_container_width=True)
 
 # [PAGE 2] 챗봇
-elif menu == "💬 AI 의료 상담 (ChatBot)":
+elif menu == "💬 AI 의료 상담":
     st.title("💬 Medi-Bot: Intelligent Triage")
     st.markdown('<div style="background:#FFF3CD; padding:10px; border-radius:5px; color:#856404; font-size:0.9rem; margin-bottom:20px;">⚠️ 본 서비스는 정보 제공 목적이며 의사의 진단을 대신할 수 없습니다.</div>', unsafe_allow_html=True)
     
@@ -204,8 +222,8 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
         with st.chat_message("user"): st.markdown(prompt)
         
         symptom_db = {
-            "호흡기 감염": {"kwd": ["열", "기침", "가래", "콧물", "인후통", "목", "오한", "근육통", "숨"], "cand": ["인플루엔자", "백일해", "폐렴구균"], "dept": "내과/이비인후과"},
-            "소화기(장염)": {"kwd": ["복통", "설사", "구토", "메스꺼움", "속", "체한", "배가"], "cand": ["A형간염", "노로바이러스", "장티푸스"], "dept": "내과"},
+            "호흡기 감염": {"kwd": ["열", "기침", "가래", "콧물", "인후통", "목", "오한", "근육통", "숨", "폐렴", "감기", "독감"], "cand": ["인플루엔자", "백일해", "폐렴구균"], "dept": "내과/이비인후과"},
+            "소화기(장염)": {"kwd": ["복통", "설사", "구토", "메스꺼움", "속", "체한", "배가", "장염", "식중독"], "cand": ["A형간염", "노로바이러스", "장티푸스", "세균성이질"], "dept": "내과"},
             "피부 질환": {"kwd": ["발진", "두드러기", "수포", "물집", "가려움", "피부"], "cand": ["수두", "홍역", "수족구병"], "dept": "피부과"}
         }
         
@@ -232,7 +250,7 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
         st.session_state.messages.append({"role": "assistant", "content": resp})
 
 # [PAGE 3] AI 분석 센터
-elif menu == "📊 AI 분석 센터 (2026 예측)":
+elif menu == "📊 AI 분석 센터":
     st.title("📊 AI Analytics Center (2026 Future)")
     st.markdown("2025년 데이터를 학습하여 **2026년**의 확산 패턴을 예측합니다.")
     
@@ -242,7 +260,8 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
             s_class = st.selectbox("분류", sorted(data['Class'].unique()), key='aic')
             s_dis = st.selectbox("질병 선택", data[data['Class'] == s_class]['Disease'].unique(), key='aid')
         with c2: 
-            st.info(f"💡 **{s_dis}**의 2026년 유행 패턴 예측 모델 가동")
+            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+            st.info(f"💡 **'{s_dis}'**의 2026년 유행 패턴 예측 모델 가동")
         
         df_t = data[data['Disease'] == s_dis].sort_values('ds')
         
@@ -263,6 +282,12 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
                     fig.add_trace(go.Scatter(x=fcst_2026['ds'], y=fcst_2026['yhat'], mode='lines', name='2026 AI 예측', line=dict(color='#5361F2', width=3)))
                     fig.update_layout(height=400, plot_bgcolor='white', title=f"2026년 {s_dis} 확산 시뮬레이션")
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    if not fcst_2026.empty:
+                        peak = fcst_2026.loc[fcst_2026['yhat'].idxmax()]
+                        st.markdown(f\"\"\"<div style="background:#F8F9FA; padding:15px; border-radius:10px;">
+                            <b>📝 AI 코멘트:</b> 2026년 <b>{peak['ds'].strftime('%m월')}</b>에 약 <b>{int(peak['yhat']):,}명</b>으로 유행 정점이 예상됩니다.
+                        </div>\"\"\", unsafe_allow_html=True)
 
             with tab2:
                 if 'yearly' in fcst.columns:
@@ -281,16 +306,16 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
                 st.plotly_chart(fig_h, use_container_width=True)
 
 # [PAGE 4] My Page
-elif menu == "👤 My Page (건강 리포트)":
+elif menu == "👤 My Page":
     st.title("👤 My Health Profile")
     col_p, col_r = st.columns([1, 2])
     with col_p:
         with st.form("mf"):
             st.subheader("내 정보 입력")
             age_g = st.selectbox("연령대", ["10대 미만", "10대", "20-30대", "40-50대", "60대 이상"])
-            job = st.selectbox("직업군", ["사무직", "의료직", "교육/보육", "요식업"])
+            job = st.selectbox("직업군", ["학생", "무직/은퇴", "일반 사무직", "의료 종사자", "교육/보육", "요식업"])
             st.markdown("**기저질환**")
-            conds = st.multiselect("선택", ["당뇨병", "호흡기 질환", "간 질환", "면역 저하"])
+            conds = st.multiselect("선택", ["당뇨병", "만성 호흡기 질환", "간 질환", "면역 저하", "심혈관 질환"])
             st.markdown("**접종 이력**")
             vax = st.multiselect("선택", ["독감", "폐렴구균", "간염"])
             sub = st.form_submit_button("분석 실행")
@@ -302,7 +327,10 @@ elif menu == "👤 My Page (건강 리포트)":
             if "10대 미만" in age_g: score += 20; warns.append(("소아 취약", "수두 주의"))
             if "60대 이상" in age_g: score += 40; warns.append(("고령층 고위험", "폐렴구균/독감 주의"))
             if "당뇨병" in conds: score += 30; warns.append(("당뇨 고위험", "합병증 주의"))
-            if "의료" in job: score += 15; warns.append(("의료인", "감염 노출 주의"))
+            
+            if "의료" in job: score += 20; warns.append(("의료인", "감염 노출 주의"))
+            if "학생" in job: score += 10; warns.append(("단체 생활", "유행성 질환 주의"))
+            if "무직" in job and "60대 이상" in age_g: score += 10; warns.append(("가정 내 감염", "가족 간 전파 주의"))
             
             if "독감" in vax: score -= 10
             score = max(0, min(100, score))
@@ -312,7 +340,7 @@ elif menu == "👤 My Page (건강 리포트)":
             st.progress(score)
             
             for t, m in warns:
-                bg = "#FFF5F5" if "고위험" in t else "#FFFFF0"
+                bg = "#FFF5F5" if "고위험" in t else "#F0F9FF"
                 st.markdown(f'<div class="warning-card" style="background:{bg};"><b>{t}</b><br>{m}</div>', unsafe_allow_html=True)
             
             if not warns: st.success("현재 특별한 위험 요인은 없습니다.")
