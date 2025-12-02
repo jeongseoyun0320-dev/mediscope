@@ -174,7 +174,7 @@ if menu == "🏠 홈 (2025 현황)":
     fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
 
-    # 4. 예방 Tip 섹션 (요청사항 반영)
+    # 4. 예방 Tip 섹션
     st.markdown("---")
     st.subheader(f"🩹 {selected_disease} 예방 및 행동 요령 (Tip)")
     
@@ -198,27 +198,38 @@ if menu == "🏠 홈 (2025 현황)":
 
 
 # ==========================================
-# [MENU 2] 💬 AI 의료 상담 (ChatBot)
+# [MENU 2] 💬 AI 의료 상담 (ChatBot) - 수정됨
 # ==========================================
 elif menu == "💬 AI 의료 상담 (ChatBot)":
-    st.subheader("💬 AI 의료 상담 챗봇")
+    st.subheader("💬 AI 증상 기반 질병 예측 상담")
     
-    # 챗봇 페이지용 질병 선택
-    c_grade = st.selectbox("등급 분류", all_grades, key='chat_grade')
-    c_diseases = sorted(df[df['급별(1)'] == c_grade]['급별(2)'].unique().tolist())
-    c_disease = st.selectbox("상담할 질병 선택", c_diseases, key='chat_disease')
+    # 드롭다운 제거 -> 안내 문구 변경
+    st.markdown("##### 🩺 현재 겪고 계신 증상을 말씀해 주시면, 의심되는 전염병을 예측해 드립니다.")
+    st.info("💡 예시: \"갑자기 고열이 나고 온몸에 붉은 발진이 생겼어요.\" 또는 \"기침이 멈추지 않고 가래가 나옵니다.\"")
     
-    st.info(f"**{c_disease}**에 대해 궁금한 점을 물어보세요.")
-    
-    with st.chat_message("assistant"):
-        st.write(f"안녕하세요! {c_disease}에 대해 무엇이 궁금하신가요? 증상, 예방법, 격리 기간 등을 질문해 주세요.")
-        
-    prompt = st.chat_input("질문을 입력하세요...")
-    if prompt:
+    # 채팅 기록 초기화
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "안녕하세요! 어떤 증상이 있으신가요? 자세히 설명해 주시면 분석해 드릴게요."}]
+
+    # 이전 메시지 표시
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+            
+    # 사용자 입력 처리
+    if prompt := st.chat_input("증상을 입력하세요..."):
+        # 사용자 메시지 표시
+        st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.write(prompt)
+
+        # AI 응답 (데모용 로직)
         with st.chat_message("assistant"):
-            st.write("죄송합니다. 현재는 데모 버전이라 실제 AI 응답은 연결되어 있지 않습니다.")
+            with st.spinner("증상을 분석하고 있습니다..."):
+                time.sleep(1.2) # 분석하는 척 딜레이
+                response_text = f"입력하신 증상 **'{prompt}'**을(를) 바탕으로 분석한 결과, 감기 혹은 초기 독감의 가능성이 있어 보입니다. (데모 버전)"
+                st.write(response_text)
+                st.session_state.messages.append({"role": "assistant", "content": response_text})
 
 
 # ==========================================
