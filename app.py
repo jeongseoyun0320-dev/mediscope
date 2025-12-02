@@ -62,28 +62,32 @@ def load_data():
         except UnicodeDecodeError:
             df = pd.read_csv(file_path, header=1, encoding='cp949')
             
-        if '급별(2)' in df.columns:
+        if '급별(2)' in df.columns and '급별(1)' in df.columns:
             # 소계, 합계 제거
             df_clean = df[~df['급별(2)'].isin(['소계', '합계'])].copy()
-            # 질병 리스트 추출 (가나다순)
+            
+            # 1. 전체 질병 리스트 (기존 호환성)
             disease_list = sorted(df_clean['급별(2)'].unique().tolist())
-            return df_clean, disease_list
+            
+            # 2. 등급 리스트
+            grade_list = sorted(df_clean['급별(1)'].unique().tolist())
+            
+            return df_clean, disease_list, grade_list
         else:
-            return pd.DataFrame(), ["데이터 형식 오류"]
+            return pd.DataFrame(), [], []
     except Exception as e:
         st.error(f"데이터 로드 실패: {e}")
-        return pd.DataFrame(), []
+        return pd.DataFrame(), [], []
 
-df, disease_options = load_data()
+df, all_diseases, all_grades = load_data()
 
 # ---------------------------------------------------------
-# 3. 사이드바 (메뉴 및 전염병 선택)
+# 3. 사이드바 (메뉴 및 리셋 버튼만 남김)
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3063/3063176.png", width=60)
     st.title("MediScope")
     
-    # [메뉴 복구]
     st.markdown("---")
     menu = st.radio("MENU", [
         "🏠 홈 (2025 현황)", 
@@ -93,52 +97,45 @@ with st.sidebar:
     ])
     st.markdown("---")
     
-    # [리셋 버튼 복구]
+    # 시스템 리셋 버튼
     if st.button("🔄 시스템 리셋"):
         st.cache_data.clear()
         st.rerun()
-    
-    st.subheader("🔍 분석 설정")
-    
-    # 전염병 선택 드롭다운 (CSV 데이터 기반)
-    if disease_options:
-        selected_disease = st.selectbox("분석할 전염병 선택", disease_options)
-        
-        # 급수 분류 표시 로직
-        try:
-            grade_row = df[df['급별(2)'] == selected_disease]
-            if not grade_row.empty:
-                grade_info = grade_row['급별(1)'].values[0]
-                st.success(f"분류: **{grade_info}**")
-            else:
-                st.caption("급수 정보 없음")
-        except:
-            st.caption("급수 확인 불가")
-    else:
-        selected_disease = "데이터 없음"
     
     st.markdown("---")
     st.markdown("© 2025 MediScope AI")
 
 
 # ---------------------------------------------------------
-# 4. 메인 컨텐츠 (메뉴별 화면 구성 분리)
+# 4. 메인 컨텐츠 (메뉴별 화면 구성)
 # ---------------------------------------------------------
-
-# 공통 Hero Section (모든 메뉴 상단에 표시하거나 홈에만 표시 가능, 여기선 공통으로 둠)
-st.markdown(f"""
-    <div class="hero-box">
-        <div class="hero-title">MediScope AI Insights</div>
-        <div class="hero-subtitle">빅데이터 기반 <b>{selected_disease}</b> 발생 추이 및 위험도 예측 리포트</div>
-    </div>
-""", unsafe_allow_html=True)
-
 
 # ==========================================
 # [MENU 1] 🏠 홈 (2025 현황)
 # ==========================================
 if menu == "🏠 홈 (2025 현황)":
-    # 메트릭 카드
+    
+    # 1. 상단 필터 (등급 -> 질병)
+    st.markdown("### 🔍 감염병 현황 조회")
+    col_filter1, col_filter2 = st.columns([1, 2])
+    
+    with col_filter1:
+        selected_grade = st.selectbox("1. 분류 등급 선택", all_grades, key='home_grade')
+    
+    with col_filter2:
+        # 선택된 등급에 해당하는 질병만 필터링
+        filtered_diseases = sorted(df[df['급별(1)'] == selected_grade]['급별(2)'].unique().tolist())
+        selected_disease = st.selectbox("2. 전염병 선택", filtered_diseases, key='home_disease')
+
+    # Hero Section
+    st.markdown(f"""
+        <div class="hero-box">
+            <div class="hero-title">MediScope AI Insights</div>
+            <div class="hero-subtitle"><b>{selected_grade} {selected_disease}</b> 발생 추이 및 예방 정보</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # 2. 메트릭 카드
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
@@ -162,18 +159,42 @@ if menu == "🏠 홈 (2025 현황)":
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("### 📈 2024-2025 월별 발생 현황")
+    st.markdown("---")
     
-    # [그래프] 과거 데이터 시각화
-    dates = pd.date_range(start='2024-01-01', periods=18, freq='M') # 2025년 중반까지 가정
+    # 3. 그래프
+    st.subheader(f"📈 {selected_disease} 월별 발생 추이")
+    
+    # (예시 데이터)
+    dates = pd.date_range(start='2024-01-01', periods=18, freq='M')
     values = np.random.randint(20, 300, size=18) + np.sin(np.linspace(0, 10, 18)) * 30
     chart_df = pd.DataFrame({'Date': dates, 'Patients': values})
     
-    fig = px.line(chart_df, x='Date', y='Patients', 
-                  markers=True, line_shape='spline')
+    fig = px.line(chart_df, x='Date', y='Patients', markers=True, line_shape='spline')
     fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'})
     fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
+
+    # 4. 예방 Tip 섹션 (요청사항 반영)
+    st.markdown("---")
+    st.subheader(f"🩹 {selected_disease} 예방 및 행동 요령 (Tip)")
+    
+    with st.expander("💡 주요 예방 수칙 보러가기", expanded=True):
+        col_tip1, col_tip2 = st.columns(2)
+        with col_tip1:
+            st.markdown(f"""
+            **1. 위생 관리**
+            - 흐르는 물에 30초 이상 비누로 손 씻기
+            - 기침할 땐 옷소매로 입과 코 가리기
+            - 씻지 않은 손으로 눈, 코, 입 만지지 않기
+            """)
+        with col_tip2:
+            st.markdown(f"""
+            **2. 생활 환경**
+            - 실내 환기를 자주 시키기
+            - 의심 증상 발생 시 마스크 착용
+            - 오염된 물이나 음식 섭취 주의
+            """)
+        st.info(f"※ 본 정보는 일반적인 예방 수칙이며, **{selected_disease}**의 특성에 따라 보건소의 지침을 따르세요.")
 
 
 # ==========================================
@@ -181,11 +202,16 @@ if menu == "🏠 홈 (2025 현황)":
 # ==========================================
 elif menu == "💬 AI 의료 상담 (ChatBot)":
     st.subheader("💬 AI 의료 상담 챗봇")
-    st.info(f"**{selected_disease}**에 대해 궁금한 점을 물어보세요.")
     
-    # 간단한 채팅 UI (Placeholder)
+    # 챗봇 페이지용 질병 선택
+    c_grade = st.selectbox("등급 분류", all_grades, key='chat_grade')
+    c_diseases = sorted(df[df['급별(1)'] == c_grade]['급별(2)'].unique().tolist())
+    c_disease = st.selectbox("상담할 질병 선택", c_diseases, key='chat_disease')
+    
+    st.info(f"**{c_disease}**에 대해 궁금한 점을 물어보세요.")
+    
     with st.chat_message("assistant"):
-        st.write(f"안녕하세요! {selected_disease}에 대해 무엇이 궁금하신가요? 증상, 예방법, 격리 기간 등을 질문해 주세요.")
+        st.write(f"안녕하세요! {c_disease}에 대해 무엇이 궁금하신가요? 증상, 예방법, 격리 기간 등을 질문해 주세요.")
         
     prompt = st.chat_input("질문을 입력하세요...")
     if prompt:
@@ -200,17 +226,29 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
 # ==========================================
 elif menu == "📊 AI 분석 센터 (2026 예측)":
     st.subheader("📊 Future AI Analysis (2026)")
-    st.markdown(f"빅데이터와 Prophet 알고리즘을 이용한 **{selected_disease}** 2026년 발생 예측입니다.")
     
-    # [그래프] 미래 예측 시각화
+    # 1. 상단 필터 (AI 센터 전용)
+    st.markdown("##### 🤖 예측 분석 대상 설정")
+    col_ai1, col_ai2 = st.columns([1, 2])
+    
+    with col_ai1:
+        ai_grade = st.selectbox("분류 등급 선택", all_grades, key='ai_grade')
+    
+    with col_ai2:
+        ai_filtered_diseases = sorted(df[df['급별(1)'] == ai_grade]['급별(2)'].unique().tolist())
+        ai_disease = st.selectbox("분석할 전염병 선택", ai_filtered_diseases, key='ai_disease')
+
+    st.markdown("---")
+    st.markdown(f"빅데이터와 Prophet 알고리즘을 이용한 **{ai_disease} ({ai_grade})** 2026년 발생 예측입니다.")
+    
+    # 2. 그래프
     future_dates = pd.date_range(start='2025-01-01', periods=24, freq='M')
-    # 예측값 생성 (트렌드가 증가하는 것으로 가정)
     future_values = np.linspace(100, 500, 24) + np.random.normal(0, 20, 24)
     
     pred_df = pd.DataFrame({'Date': future_dates, 'Predicted Patients': future_values})
     
     fig_pred = px.area(pred_df, x='Date', y='Predicted Patients',
-                       title=f"2026년 {selected_disease} 확산 예측 모델")
+                       title=f"2026년 {ai_disease} 확산 예측 모델")
     fig_pred.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'})
     fig_pred.update_traces(line_color='#FF4B4B')
     st.plotly_chart(fig_pred, use_container_width=True)
@@ -223,7 +261,13 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
 # ==========================================
 elif menu == "👤 My Page (건강 리포트)":
     st.subheader("📑 MediScope Personal Report")
-    st.markdown("개인 건강 정보를 입력하여 감염 위험도를 자가 진단해보세요.")
+    
+    # 마이페이지용 질병 선택
+    m_grade = st.selectbox("관심 등급", all_grades, key='my_grade')
+    m_diseases = sorted(df[df['급별(1)'] == m_grade]['급별(2)'].unique().tolist())
+    m_disease = st.selectbox("자가진단 대상 질병", m_diseases, key='my_disease')
+    
+    st.markdown(f"**{m_disease}**에 대한 개인 감염 위험도를 자가 진단해보세요.")
     
     col_l, col_r = st.columns([1, 1.5])
     
@@ -252,7 +296,7 @@ elif menu == "👤 My Page (건강 리포트)":
             if "당뇨병" in conds: score += 30; warns.append(("만성질환", "면역력 저하 주의"))
             if "의료직" in job: score += 15; warns.append(("직업적 특성", "병원균 노출 빈도 높음"))
             
-            st.info(f"선택하신 **{selected_disease}** 기준 개인 맞춤 분석입니다.")
+            st.info(f"선택하신 **{m_disease}** 기준 개인 맞춤 분석입니다.")
             
             score = min(score, 100)
             st.progress(score)
