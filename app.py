@@ -18,7 +18,17 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 2. 디자인 (CSS)
+# [핵심] 버전 호환성 패치 (오류 원천 차단)
+# ---------------------------------------------------------
+# Streamlit 버전에 따라 캐시 함수를 자동으로 선택합니다.
+# 이 코드가 있으면 구버전/신버전 어디서든 에러가 나지 않습니다.
+if hasattr(st, 'cache_data'):
+    cache_decorator = st.cache_data  # 신버전
+else:
+    cache_decorator = st.cache(allow_output_mutation=True, suppress_st_warning=True) # 구버전
+
+# ---------------------------------------------------------
+# 2. 디자인 (CSS) - 깔끔하고 세련된 스타일
 # ---------------------------------------------------------
 st.markdown("""
     <style>
@@ -57,8 +67,9 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. 데이터 로드 (캐시 제거 + 1~4급 모든 데이터 포함)
+# 3. 데이터 로드 (모든 등급 로드 & 2025 변환)
 # ---------------------------------------------------------
+@cache_decorator
 def get_disease_data():
     file_path = "법정감염병_월별_신고현황_20251201171522.csv"
     
@@ -66,7 +77,7 @@ def get_disease_data():
     def generate_mock():
         dates = pd.date_range('2025-01-01', '2025-12-01', freq='MS')
         mock = []
-        # 다양한 급수 포함
+        # 다양한 급수 포함 (사용자 요청 반영)
         disease_list = [
             ("제1급", "에볼라바이러스병"), ("제1급", "두창"),
             ("제2급", "결핵"), ("제2급", "수두"), ("제2급", "홍역"), ("제2급", "A형간염"),
@@ -75,9 +86,9 @@ def get_disease_data():
         ]
         for c, d in disease_list:
             for date in dates:
-                # 급수에 따라 발생 수 차등 부여 (현실감)
-                if "1급" in c: val = np.random.randint(0, 5) # 1급은 적게
-                elif "4급" in c: val = np.random.randint(1000, 5000) # 4급은 많게
+                # 급수에 따라 발생 수 차등 부여
+                if "1급" in c: val = np.random.randint(0, 5)
+                elif "4급" in c: val = np.random.randint(1000, 5000)
                 else: val = np.random.randint(10, 500)
                 
                 # 겨울철 유행 시뮬레이션
@@ -87,7 +98,7 @@ def get_disease_data():
         return pd.DataFrame(mock, columns=['ds', 'Class', 'Disease', 'y'])
 
     try:
-        # 파일 읽기
+        # 파일 읽기 시도
         df = pd.read_csv(file_path, header=None, encoding='cp949')
         
         # 데이터 본문 추출 (2행부터)
@@ -123,7 +134,7 @@ def get_disease_data():
         return df_final[['ds', 'Class', 'Disease', 'y']]
 
     except Exception as e:
-        # 에러 발생 시 1~4급이 포함된 비상용 데이터를 반환
+        # 에러 발생 시에도 1~4급이 모두 포함된 비상용 데이터를 반환
         return generate_mock()
 
 data = get_disease_data()
@@ -151,7 +162,7 @@ with st.sidebar:
     
     # 리셋 버튼 (안전하게)
     if st.button("🔄 시스템 리셋"):
-        try: st.rerun()
+        try: st.experimental_rerun()
         except: pass
 
 # ---------------------------------------------------------
@@ -175,22 +186,25 @@ if menu == "🏠 홈":
         # 0이 아닌 데이터 중 상위 3개
         top3 = data[(data['ds'] == latest) & (data['y'] > 0)].sort_values('y', ascending=False).head(3)
         
-        cols = st.columns(3)
-        for idx, (i, row) in enumerate(top3.iterrows()):
-            prev_row = data[(data['Disease'] == row['Disease']) & (data['ds'] == prev)]
-            diff = row['y'] - prev_row['y'].values[0] if not prev_row.empty else 0
-            diff_str = f"▲ {diff:,}" if diff > 0 else f"▼ {abs(diff):,}"
-            trend_col = "#E74C3C" if diff > 0 else "#27AE60"
-            
-            with cols[idx]:
-                st.markdown(f"""<div class="stat-card">
-                    <div style="font-weight:bold; color:#E74C3C; font-size:0.9rem;">🚨 {row['Class']} 경보</div>
-                    <div style="font-size:1.35rem; font-weight:800; margin:10px 0; color:#2D3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{row['Disease']}</div>
-                    <div style="font-size:2rem; font-weight:900; color:#5361F2;">{row['y']:,}<span style="font-size:1rem; color:#aaa; font-weight:500;">명</span></div>
-                    <div style="color:#666; font-size:0.9rem; background:#F7FAFC; padding:8px; border-radius:8px;">
-                        전월 대비 <span style="color:{trend_col}; font-weight:bold;">{diff_str}</span>
-                    </div>
-                </div>""", unsafe_allow_html=True)
+        if top3.empty:
+            st.info("현재 집계된 주요 감염병 데이터가 없습니다.")
+        else:
+            cols = st.columns(3)
+            for idx, (i, row) in enumerate(top3.iterrows()):
+                prev_row = data[(data['Disease'] == row['Disease']) & (data['ds'] == prev)]
+                diff = row['y'] - prev_row['y'].values[0] if not prev_row.empty else 0
+                diff_str = f"▲ {diff:,}" if diff > 0 else f"▼ {abs(diff):,}"
+                trend_col = "#E74C3C" if diff > 0 else "#27AE60"
+                
+                with cols[idx]:
+                    st.markdown(f"""<div class="stat-card">
+                        <div style="font-weight:bold; color:#E74C3C; font-size:0.9rem;">🚨 {row['Class']} 경보</div>
+                        <div style="font-size:1.35rem; font-weight:800; margin:10px 0; color:#2D3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{row['Disease']}</div>
+                        <div style="font-size:2rem; font-weight:900; color:#5361F2;">{row['y']:,}<span style="font-size:1rem; color:#aaa; font-weight:500;">명</span></div>
+                        <div style="color:#666; font-size:0.9rem; background:#F7FAFC; padding:8px; border-radius:8px;">
+                            전월 대비 <span style="color:{trend_col}; font-weight:bold;">{diff_str}</span>
+                        </div>
+                    </div>""", unsafe_allow_html=True)
     else:
         st.error("데이터 로드 실패.")
 
@@ -240,8 +254,8 @@ elif menu == "💬 AI 의료 상담":
             "호흡기 감염": {"kwd": ["열", "기침", "가래", "콧물", "인후통", "목", "오한", "근육통", "숨", "폐렴", "감기", "독감"], "cand": ["인플루엔자", "백일해", "폐렴구균"], "dept": "내과/이비인후과"},
             "소화기(장염)": {"kwd": ["복통", "설사", "구토", "메스꺼움", "속", "체한", "배가", "장염", "식중독", "물설사"], "cand": ["A형간염", "노로바이러스", "장티푸스", "세균성이질"], "dept": "내과"},
             "피부 질환": {"kwd": ["발진", "두드러기", "수포", "물집", "가려움", "피부", "따가움", "반점", "붉은"], "cand": ["수두", "홍역", "수족구병", "엠폭스"], "dept": "피부과"},
-            "발열/매개체": {"kwd": ["벌레", "물린", "산", "진드기", "야외", "풀밭", "캠핑"], "cand": ["쯔쯔가무시증", "말라리아", "일본뇌염"], "dept": "감염내과"},
-            "안과 질환": {"kwd": ["눈", "충혈", "눈곱", "시력", "따갑", "눈물"], "cand": ["유행성각결막염"], "dept": "안과"}
+            "발열/매개체": {"kwd": ["벌레", "물린", "산", "진드기", "야외", "풀밭", "캠핑"], "cand": ["쯔쯔가무시증", "말라리아", "일본뇌염", "뎅기열"], "dept": "감염내과"},
+            "안과 질환": {"kwd": ["눈", "충혈", "눈곱", "시력", "따갑", "눈물"], "cand": ["유행성각결막염", "급성출혈성결막염"], "dept": "안과"}
         }
         
         best_cat = None; max_score = 0
@@ -276,9 +290,9 @@ elif menu == "💬 AI 의료 상담":
             with st.spinner("분석 중..."): time.sleep(1); st.markdown(resp, unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": resp})
 
-# [PAGE 3] AI 분석 센터 (디자인 개선)
+# [PAGE 3] AI 분석 센터 (파란박스 위치 조정 & 설명 추가)
 elif menu == "📊 AI 분석 센터":
-    st.title("📊 AI Analytics Center")
+    st.title("📊 AI Analytics Center (2026 Future)")
     st.markdown("2025년 데이터를 학습하여 **2026년**의 확산 패턴을 예측합니다.")
     
     if not data.empty:
@@ -287,7 +301,7 @@ elif menu == "📊 AI 분석 센터":
             s_class = st.selectbox("분류", sorted(data['Class'].unique()), key='aic')
             s_dis = st.selectbox("질병 선택", data[data['Class'] == s_class]['Disease'].unique(), key='aid')
         with c2: 
-            # [수정] 위치 아래로 조정
+            # [수정] 위치를 아래로 내리기 위한 Spacer
             st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
             st.info(f"💡 **'{s_dis}'**의 2026년 유행 패턴 예측 모델 가동")
         
@@ -311,13 +325,15 @@ elif menu == "📊 AI 분석 센터":
                     fig.update_layout(height=400, plot_bgcolor='white', title=f"2026년 {s_dis} 확산 시뮬레이션")
                     st.plotly_chart(fig, use_container_width=True)
                     
+                    # [수정] 그래프 하단 설명 추가
                     if not fcst_2026.empty:
                         peak = fcst_2026.loc[fcst_2026['yhat'].idxmax()]
-                        # [수정] 설명글 추가
-                        st.markdown(f\"\"\"<div style="background:#F8F9FA; padding:15px; border-radius:10px; margin-top:10px;">
-                            <b>📝 AI Analyst Comment:</b><br>
-                            Prophet 알고리즘 분석 결과, 2026년 <b>{peak['ds'].strftime('%m월')}</b>에 약 <b>{int(peak['yhat']):,}명</b>으로 유행 정점이 예상됩니다. 
-                            해당 시기 1개월 전부터 예방 활동 강화가 필요합니다.
+                        st.markdown(f\"\"\"<div style="background:#F8F9FA; padding:20px; border-radius:10px; margin-top:10px;">
+                            <h5 style="color:#2C3E50; margin-top:0;">📝 AI Specialist Commentary</h5>
+                            <ul style="color:#4A5568; font-size:0.95rem;">
+                                <li><b>추세 분석:</b> Prophet 알고리즘 분석 결과, 2026년 <b>{peak['ds'].strftime('%m월')}</b>에 유행 정점(Peak)이 예상됩니다.</li>
+                                <li><b>예상 규모:</b> 약 <b>{int(peak['yhat']):,}명</b>의 환자가 발생할 것으로 추산됩니다.</li>
+                            </ul>
                         </div>\"\"\", unsafe_allow_html=True)
 
             with tab2:
@@ -336,7 +352,7 @@ elif menu == "📊 AI 분석 센터":
                 fig_h = px.density_heatmap(piv, x='MonthStr', y='Disease', z='y', color_continuous_scale='Redor', title="질병별 발생 강도")
                 st.plotly_chart(fig_h, use_container_width=True)
 
-# [PAGE 4] My Page (직업 추가)
+# [PAGE 4] My Page (학생, 무직 추가)
 elif menu == "👤 My Page":
     st.title("👤 My Health Profile")
     col_p, col_r = st.columns([1, 2])
