@@ -115,27 +115,53 @@ with st.sidebar:
 # ==========================================
 if menu == "🏠 홈 (2025 현황)":
     
-    # 1. 상단 필터 (등급 -> 질병)
+    # [위치 변경 로직]
+    # Hero 섹션(파란 바)을 먼저 보여주기 위해, 현재 선택된 상태를 미리 계산합니다.
+    # 세션 상태(st.session_state)를 확인하여 이전에 선택한 값이 있으면 그것을 사용하고, 없으면 기본값을 사용합니다.
+    
+    default_grade = all_grades[0] if all_grades else "데이터 없음"
+    current_grade = st.session_state.get('home_grade', default_grade)
+    
+    # 현재 등급에 맞는 질병 리스트 필터링
+    if not df.empty and current_grade in all_grades:
+        filtered_diseases = sorted(df[df['급별(1)'] == current_grade]['급별(2)'].unique().tolist())
+        default_disease = filtered_diseases[0] if filtered_diseases else "데이터 없음"
+    else:
+        filtered_diseases = []
+        default_disease = "데이터 없음"
+        
+    # 현재 선택된 질병 확인 (등급이 바뀌어서 리스트에 없으면 첫 번째로 리셋)
+    current_disease = st.session_state.get('home_disease', default_disease)
+    if current_disease not in filtered_diseases and filtered_diseases:
+        current_disease = filtered_diseases[0]
+
+    # 1. Hero Section (파란색 바) - 맨 위로 이동
+    st.markdown(f"""
+        <div class="hero-box">
+            <div class="hero-title">MediScope AI Insights</div>
+            <div class="hero-subtitle"><b>{current_grade} {current_disease}</b> 발생 추이 및 예방 정보</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # 2. 하단 필터 (등급 -> 질병) - Hero 섹션 아래로 이동
     st.markdown("### 🔍 감염병 현황 조회")
     col_filter1, col_filter2 = st.columns([1, 2])
     
     with col_filter1:
-        selected_grade = st.selectbox("1. 분류 등급 선택", all_grades, key='home_grade')
+        # 인덱스 찾기
+        try: g_idx = all_grades.index(current_grade)
+        except: g_idx = 0
+        selected_grade = st.selectbox("1. 분류 등급 선택", all_grades, index=g_idx, key='home_grade')
     
     with col_filter2:
-        # 선택된 등급에 해당하는 질병만 필터링
-        filtered_diseases = sorted(df[df['급별(1)'] == selected_grade]['급별(2)'].unique().tolist())
-        selected_disease = st.selectbox("2. 전염병 선택", filtered_diseases, key='home_disease')
+        # 인덱스 찾기
+        try: d_idx = filtered_diseases.index(current_disease)
+        except: d_idx = 0
+        selected_disease = st.selectbox("2. 전염병 선택", filtered_diseases, index=d_idx, key='home_disease')
 
-    # Hero Section
-    st.markdown(f"""
-        <div class="hero-box">
-            <div class="hero-title">MediScope AI Insights</div>
-            <div class="hero-subtitle"><b>{selected_grade} {selected_disease}</b> 발생 추이 및 예방 정보</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("---")
 
-    # 2. 메트릭 카드
+    # 3. 메트릭 카드
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
@@ -161,7 +187,7 @@ if menu == "🏠 홈 (2025 현황)":
 
     st.markdown("---")
     
-    # 3. 그래프
+    # 4. 그래프
     st.subheader(f"📈 {selected_disease} 월별 발생 추이")
     
     # (예시 데이터)
@@ -174,7 +200,7 @@ if menu == "🏠 홈 (2025 현황)":
     fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
 
-    # 4. 예방 Tip 섹션
+    # 5. 예방 Tip 섹션
     st.markdown("---")
     st.subheader(f"🩹 {selected_disease} 예방 및 행동 요령 (Tip)")
     
@@ -198,12 +224,11 @@ if menu == "🏠 홈 (2025 현황)":
 
 
 # ==========================================
-# [MENU 2] 💬 AI 의료 상담 (ChatBot) - 수정됨
+# [MENU 2] 💬 AI 의료 상담 (ChatBot)
 # ==========================================
 elif menu == "💬 AI 의료 상담 (ChatBot)":
     st.subheader("💬 AI 증상 기반 질병 예측 상담")
     
-    # 드롭다운 제거 -> 안내 문구 변경
     st.markdown("##### 🩺 현재 겪고 계신 증상을 말씀해 주시면, 의심되는 전염병을 예측해 드립니다.")
     st.info("💡 예시: \"갑자기 고열이 나고 온몸에 붉은 발진이 생겼어요.\" 또는 \"기침이 멈추지 않고 가래가 나옵니다.\"")
     
@@ -268,17 +293,11 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
 
 
 # ==========================================
-# [MENU 4] 👤 My Page (건강 리포트)
+# [MENU 4] 👤 My Page (건강 리포트) - 수정됨
 # ==========================================
 elif menu == "👤 My Page (건강 리포트)":
     st.subheader("📑 MediScope Personal Report")
-    
-    # 마이페이지용 질병 선택
-    m_grade = st.selectbox("관심 등급", all_grades, key='my_grade')
-    m_diseases = sorted(df[df['급별(1)'] == m_grade]['급별(2)'].unique().tolist())
-    m_disease = st.selectbox("자가진단 대상 질병", m_diseases, key='my_disease')
-    
-    st.markdown(f"**{m_disease}**에 대한 개인 감염 위험도를 자가 진단해보세요.")
+    st.markdown("개인 신체 정보와 기저질환을 기록하여 **맞춤형 감염병 예방 정보**를 확인하세요.")
     
     col_l, col_r = st.columns([1, 1.5])
     
@@ -286,44 +305,74 @@ elif menu == "👤 My Page (건강 리포트)":
         with st.form("personal_check"):
             st.markdown("**기본 정보**")
             age_g = st.multiselect("연령대", ["10대 미만", "10대", "20-30대", "40-50대", "60대 이상"])
-            job = st.selectbox("직업군", ["사무직", "의료직", "교육/보육", "요식업"])
             
+            # [수정] 직업군 추가 (학생, 무직)
+            job = st.selectbox("직업군", ["사무직", "의료직", "교육/보육", "요식업", "학생", "무직", "기타"])
+            
+            # [수정] 기저질환 선택지 추가
             st.markdown("**기저질환**")
-            conds = st.multiselect("선택", ["당뇨병", "호흡기 질환", "간 질환", "면역 저하"])
+            conds = st.multiselect("선택", [
+                "당뇨병", "호흡기 질환", "간 질환", "면역 저하", 
+                "고혈압", "심혈관 질환", "천식", "알레르기", "신장 질환"
+            ])
             
+            # [수정] 접종 이력 선택지 추가
             st.markdown("**접종 이력**")
-            vax = st.multiselect("선택", ["독감", "폐렴구균", "간염"])
+            vax = st.multiselect("선택", [
+                "독감", "폐렴구균", "간염", "코로나19", 
+                "파상풍", "대상포진", "자궁경부암", "장티푸스"
+            ])
             
             sub = st.form_submit_button("분석 실행")
             
     with col_r:
         if sub:
-            st.markdown("#### 분석 결과")
-            score = 10; warns = []
+            st.markdown("#### 🩺 AI 맞춤 분석 결과")
+            warns = []
             
-            # 위험도 로직
-            if "10대 미만" in age_g: score += 20; warns.append(("소아 취약", "수두/홍역 주의"))
-            if "60대 이상" in age_g: score += 40; warns.append(("고령층 고위험", "합병증 주의"))
-            if "당뇨병" in conds: score += 30; warns.append(("만성질환", "면역력 저하 주의"))
-            if "의료직" in job: score += 15; warns.append(("직업적 특성", "병원균 노출 빈도 높음"))
+            # 로직: 입력된 정보를 바탕으로 주의해야 할 질병 역추적
+            if "10대 미만" in age_g:
+                warns.append(("소아/영유아", "수두, 홍역, 유행성이하선염 등 단체생활 감염병 주의"))
             
-            st.info(f"선택하신 **{m_disease}** 기준 개인 맞춤 분석입니다.")
-            
-            score = min(score, 100)
-            st.progress(score)
-            st.caption(f"감염 위험도 점수: {score}/100")
-            
-            if score < 30:
-                st.success("🟢 **안전**: 현재 상태 양호합니다.")
-            elif score < 60:
-                st.warning("🟡 **주의**: 일부 위험 요인이 있습니다.")
-            else:
-                st.error("🔴 **위험**: 각별한 주의가 필요합니다.")
+            if "60대 이상" in age_g:
+                warns.append(("고령층", "인플루엔자(독감), 폐렴구균 감염 시 중증화 위험 높음"))
+
+            if "당뇨병" in conds or "고혈압" in conds or "심혈관 질환" in conds:
+                warns.append(("만성질환 보유", "기저질환자는 코로나19 및 독감 등 호흡기 감염병에 취약함"))
                 
+            if "천식" in conds or "호흡기 질환" in conds:
+                warns.append(("호흡기계 취약", "미세먼지 농도가 높은 날 외출 자제 및 마스크 착용 필수"))
+
+            if "의료직" in job:
+                warns.append(("직업적 고위험(의료)", "결핵, 혈액매개감염병(B형간염, C형간염) 노출 주의"))
+            
+            if "학생" in job or "교육/보육" in job:
+                warns.append(("단체 생활군", "인플루엔자, 수두, 결막염 등 유행성 질환 확산 주의"))
+                
+            if "요식업" in job:
+                warns.append(("식품 위생", "A형간염, 장티푸스, 노로바이러스 등 수인성 감염병 예방 필요"))
+
+            # 결과 출력
             if warns:
-                st.markdown("---")
-                st.write("**상세 위험 요인:**")
+                st.error("🚨 **주의가 필요한 감염병 및 요인**")
                 for w_title, w_desc in warns:
                     st.write(f"- **{w_title}**: {w_desc}")
+            else:
+                st.success("✅ **양호**: 입력하신 정보에서는 특별한 고위험군 요인이 발견되지 않았습니다.")
+                st.write("하지만 계절성 감염병 예방을 위해 개인 위생을 철저히 해주세요.")
+            
+            # 접종 제안 (간단 로직)
+            st.markdown("---")
+            st.markdown("##### 💉 권장 예방 접종")
+            rec_vax = []
+            if "독감" not in vax: rec_vax.append("인플루엔자(독감)")
+            if "파상풍" not in vax: rec_vax.append("파상풍(10년 주기)")
+            if ("60대 이상" in age_g) and ("폐렴구균" not in vax): rec_vax.append("폐렴구균")
+            
+            if rec_vax:
+                st.info(f"아직 접종하지 않으셨다면 다음 백신을 권장합니다: **{', '.join(rec_vax)}**")
+            else:
+                st.info("주요 예방 접종을 잘 챙기고 계십니다! 👍")
+
         else:
-            st.info("👈 왼쪽 양식을 입력하고 '분석 실행'을 눌러주세요.")
+            st.info("👈 왼쪽 양식에 본인의 건강 상태를 입력하고 '분석 실행' 버튼을 눌러주세요.")
