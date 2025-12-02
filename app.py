@@ -51,26 +51,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. 데이터 로드 및 전처리 (수정됨: CSV 연동 및 급수 분류)
+# 2. 데이터 로드 및 전처리
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
     file_path = '법정감염병_월별_신고현황_20251201171222.csv'
     try:
-        # 인코딩 호환성을 위해 try-except 구문 사용
         try:
             df = pd.read_csv(file_path, header=1, encoding='utf-8')
         except UnicodeDecodeError:
             df = pd.read_csv(file_path, header=1, encoding='cp949')
             
-        # 데이터 전처리: '급별(2)' 컬럼이 질병명, '급별(1)'이 급수
         if '급별(2)' in df.columns:
-            # 소계, 합계 등 통계용 행 제외
+            # 소계, 합계 제거
             df_clean = df[~df['급별(2)'].isin(['소계', '합계'])].copy()
-            
-            # 드롭다운용 질병 리스트 추출 (가나다순 정렬)
+            # 질병 리스트 추출 (가나다순)
             disease_list = sorted(df_clean['급별(2)'].unique().tolist())
-            
             return df_clean, disease_list
         else:
             return pd.DataFrame(), ["데이터 형식 오류"]
@@ -78,17 +74,16 @@ def load_data():
         st.error(f"데이터 로드 실패: {e}")
         return pd.DataFrame(), []
 
-# 데이터 불러오기
 df, disease_options = load_data()
 
 # ---------------------------------------------------------
-# 3. 사이드바 및 메인 헤더
+# 3. 사이드바 (메뉴 및 전염병 선택)
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3063/3063176.png", width=60)
     st.title("MediScope")
     
-    # [복구 완료] 요청하신 메뉴 및 리셋 버튼 코드
+    # [메뉴 복구]
     st.markdown("---")
     menu = st.radio("MENU", [
         "🏠 홈 (2025 현황)", 
@@ -97,29 +92,40 @@ with st.sidebar:
         "👤 My Page (건강 리포트)"
     ])
     st.markdown("---")
+    
+    # [리셋 버튼 복구]
     if st.button("🔄 시스템 리셋"):
         st.cache_data.clear()
         st.rerun()
     
     st.subheader("🔍 분석 설정")
     
-    # CSV에 있는 모든 전염병을 선택 가능하도록 설정
+    # 전염병 선택 드롭다운 (CSV 데이터 기반)
     if disease_options:
         selected_disease = st.selectbox("분석할 전염병 선택", disease_options)
         
-        # 선택된 전염병의 '급수(Grade)' 정보를 찾아서 표시 (분류 기능)
+        # 급수 분류 표시 로직
         try:
-            grade_info = df[df['급별(2)'] == selected_disease]['급별(1)'].values[0]
-            st.success(f"분류: **{grade_info}**") # 예: 제1급, 제2급 등 표시
+            grade_row = df[df['급별(2)'] == selected_disease]
+            if not grade_row.empty:
+                grade_info = grade_row['급별(1)'].values[0]
+                st.success(f"분류: **{grade_info}**")
+            else:
+                st.caption("급수 정보 없음")
         except:
-            st.caption("급수 정보 없음")
+            st.caption("급수 확인 불가")
     else:
         selected_disease = "데이터 없음"
     
     st.markdown("---")
     st.markdown("© 2025 MediScope AI")
 
-# 메인 헤더 (Hero Section)
+
+# ---------------------------------------------------------
+# 4. 메인 컨텐츠 (메뉴별 화면 구성 분리)
+# ---------------------------------------------------------
+
+# 공통 Hero Section (모든 메뉴 상단에 표시하거나 홈에만 표시 가능, 여기선 공통으로 둠)
 st.markdown(f"""
     <div class="hero-box">
         <div class="hero-title">MediScope AI Insights</div>
@@ -127,55 +133,99 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 4. 메인 컨텐츠 (대시보드)
-# ---------------------------------------------------------
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown("""
-        <div class="metric-card">
-            <div class="metric-value">1,240명</div>
-            <div class="metric-label">이번 달 예상 환자 수</div>
-        </div>
-    """, unsafe_allow_html=True)
-with col2:
-    st.markdown("""
-        <div class="metric-card">
-            <div class="metric-value" style="color: #FF4B4B;">▲ 12.5%</div>
-            <div class="metric-label">전월 대비 증감률</div>
-        </div>
-    """, unsafe_allow_html=True)
-with col3:
-    st.markdown("""
-        <div class="metric-card">
-            <div class="metric-value" style="color: #5361F2;">주의 단계</div>
-            <div class="metric-label">현재 경보 수준</div>
-        </div>
-    """, unsafe_allow_html=True)
+# ==========================================
+# [MENU 1] 🏠 홈 (2025 현황)
+# ==========================================
+if menu == "🏠 홈 (2025 현황)":
+    # 메트릭 카드
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+            <div class="metric-card">
+                <div class="metric-value">1,240명</div>
+                <div class="metric-label">이번 달 신고 건수</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+            <div class="metric-card">
+                <div class="metric-value" style="color: #FF4B4B;">▲ 12.5%</div>
+                <div class="metric-label">전월 대비 증감률</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with col3:
+        st.markdown("""
+            <div class="metric-card">
+                <div class="metric-value" style="color: #5361F2;">주의 단계</div>
+                <div class="metric-label">현재 경보 수준</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-st.markdown("### 📈 발생 추이 및 AI 예측")
-
-# 탭 구성
-tab1, tab2 = st.tabs(["📊 시계열 분석", "📑 개인화 리포트"])
-
-with tab1:
-    # 기존 코드의 그래프 로직 유지
-    dates = pd.date_range(start='2024-01-01', periods=24, freq='M')
-    values = np.random.randint(50, 500, size=24) + np.sin(np.linspace(0, 10, 24)) * 50
+    st.markdown("### 📈 2024-2025 월별 발생 현황")
     
+    # [그래프] 과거 데이터 시각화
+    dates = pd.date_range(start='2024-01-01', periods=18, freq='M') # 2025년 중반까지 가정
+    values = np.random.randint(20, 300, size=18) + np.sin(np.linspace(0, 10, 18)) * 30
     chart_df = pd.DataFrame({'Date': dates, 'Patients': values})
     
     fig = px.line(chart_df, x='Date', y='Patients', 
-                  title=f"{selected_disease} 월별 환자 수 추이",
                   markers=True, line_shape='spline')
     fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'})
     fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
 
-with tab2:
-    st.markdown("#### 🩺 개인별 감염 위험도 자가진단")
-    col_l, col_r = st.columns([1, 2])
+
+# ==========================================
+# [MENU 2] 💬 AI 의료 상담 (ChatBot)
+# ==========================================
+elif menu == "💬 AI 의료 상담 (ChatBot)":
+    st.subheader("💬 AI 의료 상담 챗봇")
+    st.info(f"**{selected_disease}**에 대해 궁금한 점을 물어보세요.")
+    
+    # 간단한 채팅 UI (Placeholder)
+    with st.chat_message("assistant"):
+        st.write(f"안녕하세요! {selected_disease}에 대해 무엇이 궁금하신가요? 증상, 예방법, 격리 기간 등을 질문해 주세요.")
+        
+    prompt = st.chat_input("질문을 입력하세요...")
+    if prompt:
+        with st.chat_message("user"):
+            st.write(prompt)
+        with st.chat_message("assistant"):
+            st.write("죄송합니다. 현재는 데모 버전이라 실제 AI 응답은 연결되어 있지 않습니다.")
+
+
+# ==========================================
+# [MENU 3] 📊 AI 분석 센터 (2026 예측)
+# ==========================================
+elif menu == "📊 AI 분석 센터 (2026 예측)":
+    st.subheader("📊 Future AI Analysis (2026)")
+    st.markdown(f"빅데이터와 Prophet 알고리즘을 이용한 **{selected_disease}** 2026년 발생 예측입니다.")
+    
+    # [그래프] 미래 예측 시각화
+    future_dates = pd.date_range(start='2025-01-01', periods=24, freq='M')
+    # 예측값 생성 (트렌드가 증가하는 것으로 가정)
+    future_values = np.linspace(100, 500, 24) + np.random.normal(0, 20, 24)
+    
+    pred_df = pd.DataFrame({'Date': future_dates, 'Predicted Patients': future_values})
+    
+    fig_pred = px.area(pred_df, x='Date', y='Predicted Patients',
+                       title=f"2026년 {selected_disease} 확산 예측 모델")
+    fig_pred.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'})
+    fig_pred.update_traces(line_color='#FF4B4B')
+    st.plotly_chart(fig_pred, use_container_width=True)
+    
+    st.warning("⚠️ 이 예측치는 AI 모델링 결과이며 실제와 다를 수 있습니다.")
+
+
+# ==========================================
+# [MENU 4] 👤 My Page (건강 리포트)
+# ==========================================
+elif menu == "👤 My Page (건강 리포트)":
+    st.subheader("📑 MediScope Personal Report")
+    st.markdown("개인 건강 정보를 입력하여 감염 위험도를 자가 진단해보세요.")
+    
+    col_l, col_r = st.columns([1, 1.5])
     
     with col_l:
         with st.form("personal_check"):
@@ -193,24 +243,32 @@ with tab2:
             
     with col_r:
         if sub:
-            st.subheader("📑 MediScope Personal Report")
+            st.markdown("#### 분석 결과")
             score = 10; warns = []
             
-            if "10대 미만" in age_g: score += 20; warns.append(("소아 취약", "수두 주의"))
-            if "60대 이상" in age_g: score += 40; warns.append(("고령층 고위험", "폐렴구균/독감 주의"))
-            if "당뇨병" in conds: score += 30; warns.append(("당뇨 고위험", "합병증 주의"))
-            if "의료직" in job: score += 15; warns.append(("의료인", "감염 노출 주의"))
+            # 위험도 로직
+            if "10대 미만" in age_g: score += 20; warns.append(("소아 취약", "수두/홍역 주의"))
+            if "60대 이상" in age_g: score += 40; warns.append(("고령층 고위험", "합병증 주의"))
+            if "당뇨병" in conds: score += 30; warns.append(("만성질환", "면역력 저하 주의"))
+            if "의료직" in job: score += 15; warns.append(("직업적 특성", "병원균 노출 빈도 높음"))
             
-            st.info(f"선택하신 **{selected_disease}**에 대한 개인 맞춤 분석 결과입니다.")
+            st.info(f"선택하신 **{selected_disease}** 기준 개인 맞춤 분석입니다.")
             
             score = min(score, 100)
             st.progress(score)
             st.caption(f"감염 위험도 점수: {score}/100")
             
-            if warns:
-                for w_title, w_desc in warns:
-                    st.warning(f"**{w_title}**: {w_desc}")
+            if score < 30:
+                st.success("🟢 **안전**: 현재 상태 양호합니다.")
+            elif score < 60:
+                st.warning("🟡 **주의**: 일부 위험 요인이 있습니다.")
             else:
-                st.success("현재 입력하신 정보로는 고위험 요인이 발견되지 않았습니다.")
+                st.error("🔴 **위험**: 각별한 주의가 필요합니다.")
+                
+            if warns:
+                st.markdown("---")
+                st.write("**상세 위험 요인:**")
+                for w_title, w_desc in warns:
+                    st.write(f"- **{w_title}**: {w_desc}")
         else:
-            st.info("왼쪽 양식을 입력하고 '분석 실행' 버튼을 눌러주세요.")
+            st.info("👈 왼쪽 양식을 입력하고 '분석 실행'을 눌러주세요.")
