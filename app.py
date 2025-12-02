@@ -51,14 +51,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. 데이터 로드 및 전처리 (수정됨)
+# 2. 데이터 로드 및 전처리 (수정됨: 안전한 로딩)
 # ---------------------------------------------------------
 @st.cache_data
 def load_disease_data():
     csv_file = '법정감염병_월별_신고현황_20251201171222.csv'
     try:
         # CSV 구조상 두 번째 줄(index 1)이 실제 헤더(급별, 계, 1월...)입니다.
-        df = pd.read_csv(csv_file, header=1, encoding='utf-8')
+        # 인코딩 오류 방지를 위해 utf-8 시도 후 실패 시 cp949로 재시도합니다.
+        try:
+            df = pd.read_csv(csv_file, header=1, encoding='utf-8')
+        except UnicodeDecodeError:
+            df = pd.read_csv(csv_file, header=1, encoding='cp949')
         
         # '급별(2)' 컬럼이 실제 질병명을 담고 있습니다. '소계'나 '합계'는 제외합니다.
         if '급별(2)' in df.columns:
