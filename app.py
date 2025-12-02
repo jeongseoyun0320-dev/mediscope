@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 1. 디자인 (CSS) - 수정 없음 (원본 유지)
+# 1. 디자인 (CSS) - 메뉴바 디자인 개선 및 원본 유지
 # ---------------------------------------------------------
 st.markdown("""
     <style>
@@ -48,6 +48,28 @@ st.markdown("""
     .metric-label { font-size: 0.9rem; color: #666; margin-top: 5px; }
     
     div[data-testid="stExpander"] { border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-radius: 10px; background: white; }
+    
+    /* [NEW] 사이드바 메뉴 꾸미기 (라디오 버튼 숨기기 + 카드 스타일) */
+    [data-testid="stSidebar"] [data-testid="stRadio"] > div {
+        gap: 10px;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label {
+        background-color: #F3F4F6;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 5px;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+        background-color: #E0E7FF;
+        border-color: #5361F2;
+        transform: translateX(5px);
+    }
+    /* 라디오 버튼의 동그라미 숨기기 (Streamlit 구조 의존) */
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
+        display: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -90,29 +112,42 @@ def load_data():
 df, all_diseases, all_grades = load_data()
 
 # ---------------------------------------------------------
-# 3. 사이드바 (메뉴 및 리셋 버튼만 남김)
+# 3. 사이드바 (메뉴 및 리셋 버튼)
 # ---------------------------------------------------------
 with st.sidebar:
-    # st.image("https://cdn-icons-png.flaticon.com/512/3063/3063176.png", width=60) # 기존 이미지 주석 처리
-    st.markdown("# 🏠 MediScope") # 이모지로 대체 및 크기 조절
-    # st.title("MediScope") # 기존 타이틀 주석 처리 (마크다운에 포함됨)
+    # 병원 이모지(🏥) 크기 유지
+    st.markdown("""
+        <div style="display: flex; align-items: center; margin-bottom: 20px;">
+            <span style="font-size: 3.8rem; margin-right: 10px; line-height: 1;">🏥</span>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 1.8rem; font-weight: 800; color: #333;">MediScope</span>
+                <span style="font-size: 0.8rem; color: #666; font-weight: 400;">AI Infection Control</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # [수정됨] 메뉴명 간소화 (괄호 제거) 및 스타일 적용
+    menu = st.radio("Navigation", [
+        "🏠 홈", 
+        "💬 AI 의료 상담", 
+        "📊 AI 분석 센터", 
+        "👤 My Page"
+    ], label_visibility="collapsed")
     
     st.markdown("---")
-    menu = st.radio("MENU", [
-        "🏠 홈 (2025 현황)", 
-        "💬 AI 의료 상담 (ChatBot)", 
-        "📊 AI 분석 센터 (2026 예측)", 
-        "👤 My Page (건강 리포트)"
-    ])
-    st.markdown("---")
     
-    # 시스템 리셋 버튼
-    if st.button("🔄 시스템 리셋"):
+    # 시스템 리셋 버튼 (디자인 살짝 개선)
+    if st.button("🔄 시스템 리셋", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
     
     st.markdown("---")
-    st.markdown("© 2025 MediScope AI")
+    st.markdown("""
+        <div style='text-align: center; color: #888; font-size: 0.8rem;'>
+        © 2025 MediScope AI<br>
+        All rights reserved.
+        </div>
+    """, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
@@ -120,15 +155,14 @@ with st.sidebar:
 # ---------------------------------------------------------
 
 # ==========================================
-# [MENU 1] 🏠 홈 (2025 현황)
+# [MENU 1] 🏠 홈
 # ==========================================
-if menu == "🏠 홈 (2025 현황)":
+if menu == "🏠 홈":
     
     # [위치 변경 로직]
     default_grade = all_grades[0] if all_grades else "데이터 없음"
     current_grade = st.session_state.get('home_grade', default_grade)
     
-    # 현재 등급에 맞는 질병 리스트 필터링
     if not df.empty and current_grade in all_grades:
         filtered_diseases = sorted(df[df['급별(1)'] == current_grade]['급별(2)'].unique().tolist())
         default_disease = filtered_diseases[0] if filtered_diseases else "데이터 없음"
@@ -136,12 +170,11 @@ if menu == "🏠 홈 (2025 현황)":
         filtered_diseases = []
         default_disease = "데이터 없음"
         
-    # 현재 선택된 질병 확인
     current_disease = st.session_state.get('home_disease', default_disease)
     if current_disease not in filtered_diseases and filtered_diseases:
         current_disease = filtered_diseases[0]
 
-    # 1. Hero Section (파란색 바)
+    # 1. Hero Section
     st.markdown(f"""
         <div class="hero-box">
             <div class="hero-title">MediScope AI Insights</div>
@@ -149,7 +182,7 @@ if menu == "🏠 홈 (2025 현황)":
         </div>
     """, unsafe_allow_html=True)
 
-    # 2. 하단 필터 (등급 -> 질병)
+    # 2. 하단 필터
     st.markdown("### 🔍 감염병 현황 조회")
     col_filter1, col_filter2 = st.columns([1, 2])
     
@@ -203,15 +236,12 @@ if menu == "🏠 홈 (2025 현황)":
     fig.update_traces(line_color='#5361F2', line_width=3)
     st.plotly_chart(fig, use_container_width=True)
 
-    # 5. 예방 Tip 섹션 - [맞춤형 로직 적용]
+    # 5. 예방 Tip 섹션
     st.markdown("---")
     st.subheader(f"🩹 {selected_disease} 예방 및 행동 요령 (Tip)")
 
-    # 맞춤형 팁 생성 함수
     def get_custom_tips(disease_name):
         d_name = disease_name
-        
-        # 1. 호흡기 감염병 (비말/공기)
         if any(k in d_name for k in ["결핵", "인플루엔자", "코로나", "홍역", "수두", "백일해", "유행성이하선염", "성홍열", "폐렴구균", "엠폭스"]):
             return (
                 "마스크 착용 및 기침 예절",
@@ -219,8 +249,6 @@ if menu == "🏠 홈 (2025 현황)":
                 "실내 환기 및 격리",
                 "- 하루 3회 이상, 10분씩 실내 환기를 시켜주세요.\n- 발열 및 호흡기 증상 발생 시 등교/출근을 멈추고 집에서 휴식하세요."
             )
-        
-        # 2. 수인성/식품매개 감염병 (물/음식)
         elif any(k in d_name for k in ["콜레라", "장티푸스", "파라티푸스", "세균성이질", "장출혈성", "A형간염", "비브리오", "식중독", "노로바이러스"]):
             return (
                 "안전한 물과 음식 섭취",
@@ -228,8 +256,6 @@ if menu == "🏠 홈 (2025 현황)":
                 "철저한 손 씻기",
                 "- 화장실 사용 후, 조리 전, 식사 전 흐르는 물에 비누로 30초 이상 손을 씻으세요.\n- 설사 증상이 있는 경우 음식을 조리하지 마세요."
             )
-        
-        # 3. 매개체 감염병 (모기/진드기)
         elif any(k in d_name for k in ["말라리아", "일본뇌염", "쯔쯔가무시", "뎅기열", "지카", "열", "진드기"]):
             return (
                 "피부 노출 최소화",
@@ -237,8 +263,6 @@ if menu == "🏠 홈 (2025 현황)":
                 "환경 관리 및 예방접종",
                 "- 집 주변 웅덩이 등 모기 서식지를 제거하세요.\n- 야외 활동 후 즉시 샤워하고 입었던 옷은 세탁하세요.\n- 유행 지역 방문 전 예방접종 여부를 확인하세요."
             )
-        
-        # 4. 혈액/성매개/접촉 감염병
         elif any(k in d_name for k in ["B형간염", "C형간염", "매독", "후천성면역결핍증"]):
             return (
                 "개인 위생용품 공유 금지",
@@ -246,8 +270,6 @@ if menu == "🏠 홈 (2025 현황)":
                 "정기 검진 및 안전 수칙",
                 "- 정기적인 검진을 통해 감염 여부를 확인하세요.\n- 의료 종사자는 주사 바늘 찔림 등 혈액 노출 사고에 주의하세요."
             )
-        
-        # 5. 기타/일반적인 경우
         else:
             return (
                 "일상 속 위생 수칙 준수",
@@ -270,24 +292,21 @@ if menu == "🏠 홈 (2025 현황)":
 
 
 # ==========================================
-# [MENU 2] 💬 AI 의료 상담 (ChatBot)
+# [MENU 2] 💬 AI 의료 상담
 # ==========================================
-elif menu == "💬 AI 의료 상담 (ChatBot)":
+elif menu == "💬 AI 의료 상담":
     st.subheader("💬 AI 증상 기반 질병 예측 상담")
     
     st.markdown("##### 🩺 현재 겪고 계신 증상을 말씀해 주시면, 의심되는 전염병을 예측해 드립니다.")
     st.info("💡 예시: \"진드기에 물린 것 같고 열이 나요\", \"해산물을 먹고 배가 아파요\", \"기침이 계속되고 피가 섞여 나와요\"")
     
-    # 채팅 기록 초기화
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "안녕하세요! 어떤 증상이 있으신가요? 자세히 설명해 주시면 분석해 드릴게요."}]
 
-    # 이전 메시지 표시
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
             
-    # [핵심 로직] 증상 키워드 데이터베이스 (CSV 질병 매핑)
     symptom_db = {
         "결핵": ["기침", "가래", "혈담", "객혈", "피", "체중 감소", "미열", "식은땀"],
         "콜레라": ["쌀뜨물", "설사", "구토", "탈수", "복통 없는 설사"],
@@ -310,30 +329,24 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
         "엠폭스": ["수포", "발진", "림프절", "고열", "근육통"]
     }
 
-    # 사용자 입력 처리
     if prompt := st.chat_input("증상을 입력하세요..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.write(prompt)
 
-        # AI 응답 로직
         with st.chat_message("assistant"):
             with st.spinner("증상 데이터 분석 중..."):
                 time.sleep(0.8)
                 
                 detected_diseases = []
-                # 사용자의 입력(prompt)에서 키워드를 찾아 매칭되는 질병 추출
                 for disease, keywords in symptom_db.items():
-                    # CSV 파일(all_diseases)에 있는 질병인지 확인 (데이터 정합성)
                     if any(disease in d for d in all_diseases): 
                         for keyword in keywords:
                             if keyword in prompt:
                                 detected_diseases.append(disease)
                                 break
                 
-                # 결과 생성
                 if detected_diseases:
-                    # 중복 제거
                     detected_diseases = list(set(detected_diseases))
                     diseases_str = ", ".join([f"**{d}**" for d in detected_diseases])
                     
@@ -356,16 +369,15 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
 
 
 # ==========================================
-# [MENU 3] 📊 AI 분석 센터 (2026 예측)
+# [MENU 3] 📊 AI 분석 센터
 # ==========================================
-elif menu == "📊 AI 분석 센터 (2026 예측)":
+elif menu == "📊 AI 분석 센터":
     st.subheader("📊 Future AI Analysis (2026)")
     
     st.markdown("##### 🤖 예측 분석 대상 설정")
     col_ai1, col_ai2 = st.columns([1, 2])
     
     with col_ai1:
-        # 여기에도 정렬된 all_grades가 반영됨
         ai_grade = st.selectbox("분류 등급 선택", all_grades, key='ai_grade')
     
     with col_ai2:
@@ -390,9 +402,9 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
 
 
 # ==========================================
-# [MENU 4] 👤 My Page (건강 리포트)
+# [MENU 4] 👤 My Page
 # ==========================================
-elif menu == "👤 My Page (건강 리포트)":
+elif menu == "👤 My Page":
     st.subheader("📑 MediScope Personal Report")
     st.markdown("개인 신체 정보와 기저질환을 기록하여 **맞춤형 감염병 예방 정보**를 확인하세요.")
     
