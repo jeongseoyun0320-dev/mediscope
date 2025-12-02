@@ -20,45 +20,81 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 1. 디자인 (CSS) - 메뉴바 디자인 개선 및 원본 유지
+# 1. 디자인 (CSS) - 깔끔한 화이트 & 브랜드 컬러 테마 적용
 # ---------------------------------------------------------
 st.markdown("""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
-    .stApp { background-color: #F8F9FA; }
     
-    [data-testid="stSidebar"] { background-color: white; border-right: 1px solid #eee; }
+    /* 기본 폰트 및 변수 설정 */
+    :root {
+        --primary-color: #5361F2;
+        --bg-color: #FFFFFF;
+        --text-color: #333333;
+        --gray-light: #F8F9FA;
+        --border-color: #EEEEEE;
+    }
     
+    html, body, [class*="css"] { 
+        font-family: 'Pretendard', sans-serif; 
+        color: var(--text-color);
+    }
+    
+    /* 메인 배경 화이트로 설정 */
+    .stApp { background-color: var(--bg-color); }
+    
+    /* 사이드바 스타일 */
+    [data-testid="stSidebar"] { 
+        background-color: var(--gray-light); 
+        border-right: 1px solid var(--border-color); 
+    }
+    
+    /* Hero Box (상단 배너) - 심플한 단색/미세 그라데이션 */
     .hero-box {
-        background: linear-gradient(120deg, #5361F2, #3B4CCA);
-        padding: 40px 30px; border-radius: 20px; color: white;
-        margin-bottom: 30px; box-shadow: 0 10px 20px rgba(59, 76, 202, 0.2);
+        background: linear-gradient(135deg, #5361F2, #6976F5);
+        padding: 40px 30px; 
+        border-radius: 20px; 
+        color: white;
+        margin-bottom: 30px; 
+        box-shadow: 0 10px 30px rgba(83, 97, 242, 0.15); /* 부드러운 그림자 */
     }
-    .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
-    .hero-subtitle { font-size: 1.1rem; opacity: 0.9; font-weight: 300; }
+    .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; color: white; }
+    .hero-subtitle { font-size: 1.1rem; opacity: 0.9; font-weight: 400; color: white; }
     
+    /* Metric Card - 깔끔한 보더 스타일 */
     .metric-card {
-        background: white; border-radius: 15px; padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;
-        transition: transform 0.2s;
+        background: white; 
+        border: 1px solid var(--border-color);
+        border-radius: 16px; 
+        padding: 24px;
+        text-align: center;
+        transition: all 0.2s ease-in-out;
     }
-    .metric-card:hover { transform: translateY(-5px); }
-    .metric-value { font-size: 1.8rem; font-weight: bold; color: #333; }
-    .metric-label { font-size: 0.9rem; color: #666; margin-top: 5px; }
+    .metric-card:hover { 
+        border-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(83, 97, 242, 0.1);
+    }
+    .metric-value { font-size: 2rem; font-weight: 800; color: var(--primary-color); }
+    .metric-label { font-size: 0.95rem; color: #666; margin-top: 8px; font-weight: 500; }
     
-    div[data-testid="stExpander"] { border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-radius: 10px; background: white; }
+    /* Expander 스타일 */
+    div[data-testid="stExpander"] { 
+        border: 1px solid var(--border-color); 
+        box-shadow: none; 
+        border-radius: 12px; 
+        background: white; 
+    }
     
-    /* [수정됨] 사이드바 메뉴 스타일 개선 (공백 제거 및 정렬 최적화) */
-    /* 라디오 버튼 그룹 간격 */
+    /* [Navigation] 사이드바 메뉴 스타일링 (핵심) */
     section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
-        gap: 12px;
+        gap: 8px;
     }
     
-    /* 각 메뉴 항목(라디오 옵션) 스타일 */
+    /* 기본 메뉴 항목 */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
-        background-color: #F8F9FA;
-        padding: 12px 16px; /* 내부 여백 조정 */
+        background-color: transparent; /* 투명 */
+        padding: 12px 16px; 
         border-radius: 12px;
         border: 1px solid transparent;
         transition: all 0.2s ease;
@@ -67,40 +103,80 @@ st.markdown("""
         align-items: center;
         width: 100%;
         cursor: pointer;
+        color: #555; /* 기본 글씨색 */
     }
     
-    /* 라디오 버튼 원형(Circle) 완전 제거 및 공간 삭제 */
+    /* 마우스 호버 시 */
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {
+        background-color: #EBEFFF; /* 아주 연한 브랜드 컬러 */
+        color: var(--primary-color);
+    }
+
+    /* 선택된 메뉴 항목 (Active) - 브랜드 컬러 배경 + 흰색 글씨 */
+    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] {
+        background-color: var(--primary-color) !important;
+        box-shadow: 0 4px 12px rgba(83, 97, 242, 0.25);
+    }
+    
+    /* 선택된 항목의 텍스트 색상 */
+    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:last-child {
+        color: white !important;
+        font-weight: 700;
+    }
+    
+    /* 라디오 버튼 원형(Circle) 및 공백 완전 제거 */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
         display: none !important;
         width: 0px !important;
         margin: 0px !important;
     }
-    
-    /* 텍스트 영역 스타일 (왼쪽 공백 제거) */
     section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:last-child {
         margin-left: 0px !important; 
-        font-weight: 500;
         font-size: 1rem;
-        color: #495057;
     }
 
-    /* 선택된 항목 스타일 (Highlight) */
-    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] {
-        background-color: #E0E7FF; /* 연한 보라색 배경 */
-        border: 1px solid #5361F2;
-        box-shadow: 0 2px 4px rgba(83, 97, 242, 0.1);
+    /* 버튼 스타일 (Primary & Secondary) */
+    div.stButton > button {
+        border-radius: 8px;
+        font-weight: 600;
+        border: 1px solid var(--primary-color);
+        background-color: white;
+        color: var(--primary-color);
+        transition: all 0.2s;
+    }
+    div.stButton > button:hover {
+        background-color: var(--primary-color);
+        color: white;
     }
     
-    /* 선택된 항목의 텍스트 색상 */
-    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:last-child {
-        color: #5361F2 !important;
-        font-weight: 700;
+    /* 폼 제출 버튼 등 주요 버튼 */
+    div[data-testid="stForm"] button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
     }
-    
-    /* 마우스 호버 효과 */
-    section[data-testid="stSidebar"] .stRadio label:hover {
-        background-color: #F0F4FF;
-        transform: translateX(4px);
+    div[data-testid="stForm"] button:hover {
+        background-color: #404ECA; /* 조금 더 진한 색 */
+    }
+
+    /* 탭(Tabs) 스타일 */
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0 0;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        color: #888;
+        font-weight: 500;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: white;
+        color: var(--primary-color) !important;
+        font-weight: 800;
+        border-bottom: 2px solid var(--primary-color) !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -147,18 +223,18 @@ df, all_diseases, all_grades = load_data()
 # 3. 사이드바 (메뉴 및 리셋 버튼)
 # ---------------------------------------------------------
 with st.sidebar:
-    # 병원 이모지(🏥) 크기 유지
+    # 로고 영역
     st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 20px;">
-            <span style="font-size: 3.8rem; margin-right: 10px; line-height: 1;">🏥</span>
+        <div style="display: flex; align-items: center; margin-bottom: 30px; padding-left: 10px;">
+            <span style="font-size: 3.5rem; margin-right: 12px; line-height: 1;">🏥</span>
             <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 1.8rem; font-weight: 800; color: #333;">MediScope</span>
-                <span style="font-size: 0.8rem; color: #666; font-weight: 400;">AI Infection Control</span>
+                <span style="font-size: 1.6rem; font-weight: 800; color: #333;">MediScope</span>
+                <span style="font-size: 0.8rem; color: #888; font-weight: 500; letter-spacing: 1px;">AI INFECTION CONTROL</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
     
-    # 메뉴명 간소화 및 스타일 적용
+    # 네비게이션 메뉴
     menu = st.radio("Navigation", [
         "🏠 홈", 
         "💬 AI 의료 상담", 
@@ -175,7 +251,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("""
-        <div style='text-align: center; color: #888; font-size: 0.8rem;'>
+        <div style='text-align: center; color: #AAA; font-size: 0.75rem; margin-top: 20px;'>
         © 2025 MediScope AI<br>
         All rights reserved.
         </div>
@@ -419,39 +495,31 @@ elif menu == "📊 AI 분석 센터":
     st.markdown("---")
     
     # ----------------------------------------------------
-    # 데이터 시뮬레이션 (2024년 패턴 기반 2021~2026 생성)
+    # 데이터 시뮬레이션
     # ----------------------------------------------------
-    # 실제 2024년 데이터(1~12월) 추출
     try:
         row = df[df['급별(2)'] == ai_disease]
-        # CSV 컬럼 3번부터 14번까지가 1월~12월
         monthly_2024 = row.iloc[0, 3:15].values.astype(float)
-        # 결측치가 있으면 0으로 채움
         monthly_2024 = np.nan_to_num(monthly_2024)
     except:
-        monthly_2024 = np.array([100]*12) # 기본값
+        monthly_2024 = np.array([100]*12)
 
-    # 데이터 확장 함수 (과거/미래 생성)
     def generate_extended_data(pattern_2024):
-        # 2021~2023 (과거), 2025~2026 (미래)
         years = [2021, 2022, 2023, 2024, 2025, 2026]
         all_data = []
-        
         for yr in years:
-            # 연도별 트렌드 계수 (예: 과거는 적게, 미래는 많게 또는 랜덤 변동)
             if yr == 2024:
                 factor = 1.0
                 noise = 0
             elif yr < 2024:
-                factor = 0.8 + (yr - 2021) * 0.05 # 0.8, 0.85, 0.9...
+                factor = 0.8 + (yr - 2021) * 0.05
                 noise = np.random.normal(0, 5, 12)
-            else: # Future
-                factor = 1.0 + (yr - 2024) * 0.1 # 1.1, 1.2 (증가 추세 가정)
+            else:
+                factor = 1.0 + (yr - 2024) * 0.1
                 noise = np.random.normal(0, 10, 12)
             
-            # 2024년 패턴에 팩터 곱하고 노이즈 추가 (음수 방지)
             yearly_vals = (pattern_2024 * factor) + noise
-            yearly_vals = np.maximum(yearly_vals, 0) # 0보다 작으면 0
+            yearly_vals = np.maximum(yearly_vals, 0)
             
             for m in range(12):
                 date_str = f"{yr}-{m+1:02d}-01"
@@ -463,35 +531,31 @@ elif menu == "📊 AI 분석 센터":
     df_sim['Date'] = pd.to_datetime(df_sim['Date'])
 
     # ----------------------------------------------------
-    # 탭 구성 (2026 예측 / 계절성 / 히트맵)
+    # 탭 구성
     # ----------------------------------------------------
     tab1, tab2, tab3 = st.tabs(["📈 2026년 예측", "🔄 계절성 패턴", "🔥 발생 히트맵"])
 
-    # [Tab 1] 2026년 예측 (Prophet 스타일 시각화)
+    # [Tab 1] 2026년 예측
     with tab1:
         st.markdown(f"**{ai_disease}**의 빅데이터 기반 **2026년 발생 예측**입니다.")
         
-        # 2026년 데이터 필터링
         pred_df = df_sim[df_sim['Year'] == 2026].copy()
         hist_df = df_sim[df_sim['Year'] < 2026].copy()
         
         fig_pred = go.Figure()
         
-        # 과거 데이터 (회색 점선)
         fig_pred.add_trace(go.Scatter(
             x=hist_df['Date'], y=hist_df['Patients'],
             mode='lines', name='과거 데이터',
-            line=dict(color='gray', width=1, dash='dot')
+            line=dict(color='#A0A0A0', width=1, dash='dot')
         ))
         
-        # 2026 예측 데이터 (빨간 실선 & 영역)
         fig_pred.add_trace(go.Scatter(
             x=pred_df['Date'], y=pred_df['Patients'],
             mode='lines+markers', name='2026 예측',
-            line=dict(color='#FF4B4B', width=3)
+            line=dict(color='#5361F2', width=3)
         ))
         
-        # 신뢰구간 (가상)
         upper_bound = pred_df['Patients'] * 1.2
         lower_bound = pred_df['Patients'] * 0.8
         
@@ -501,30 +565,27 @@ elif menu == "📊 AI 분석 센터":
         ))
         fig_pred.add_trace(go.Scatter(
             x=pred_df['Date'], y=lower_bound,
-            mode='lines', fill='tonexty', fillcolor='rgba(255, 75, 75, 0.2)',
+            mode='lines', fill='tonexty', fillcolor='rgba(83, 97, 242, 0.1)',
             line=dict(width=0), name='신뢰구간'
         ))
 
         fig_pred.update_layout(
             title=f"2026년 {ai_disease} 예측 모델링",
             plot_bgcolor='white', paper_bgcolor='white', font={'family': 'Pretendard'},
-            xaxis=dict(showgrid=True, gridcolor='#eee'),
-            yaxis=dict(showgrid=True, gridcolor='#eee')
+            xaxis=dict(showgrid=True, gridcolor='#F0F0F0'),
+            yaxis=dict(showgrid=True, gridcolor='#F0F0F0')
         )
         st.plotly_chart(fig_pred, use_container_width=True)
         st.caption("※ Prophet 알고리즘을 활용한 시계열 분석 결과입니다.")
 
-    # [Tab 2] 계절성 패턴 (레이더 차트 & 월별 평균)
+    # [Tab 2] 계절성 패턴
     with tab2:
         st.markdown(f"**{ai_disease}**의 월별 평균 발생 패턴입니다.")
-        
-        # 월별 평균 계산 (2021~2025)
         monthly_avg = df_sim[df_sim['Year'] <= 2025].groupby('Month')['Patients'].mean().reset_index()
         
         col_s1, col_s2 = st.columns(2)
         
         with col_s1:
-            # 레이더 차트
             fig_radar = go.Figure(data=go.Scatterpolar(
                 r=monthly_avg['Patients'],
                 theta=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
@@ -539,7 +600,6 @@ elif menu == "📊 AI 분석 센터":
             st.plotly_chart(fig_radar, use_container_width=True)
             
         with col_s2:
-            # 바 차트
             fig_bar = px.bar(monthly_avg, x='Month', y='Patients', 
                              title="월별 평균 환자 수",
                              color='Patients', color_continuous_scale='Blues')
@@ -549,21 +609,18 @@ elif menu == "📊 AI 분석 센터":
             )
             st.plotly_chart(fig_bar, use_container_width=True)
             
-        # 계절성 분석 멘트
         max_month = monthly_avg.loc[monthly_avg['Patients'].idxmax(), 'Month']
         st.info(f"📊 분석 결과, **{ai_disease}**은(는) 주로 **{max_month}월**에 발생 빈도가 가장 높게 나타납니다.")
 
-    # [Tab 3] 발생 히트맵 (연도 vs 월)
+    # [Tab 3] 발생 히트맵
     with tab3:
         st.markdown(f"**{ai_disease}**의 연도별/월별 발생 강도 히트맵입니다.")
         
-        # 히트맵 데이터 준비
-        # X: Month, Y: Year, Color: Patients
         fig_heat = go.Figure(data=go.Heatmap(
             z=df_sim['Patients'],
             x=df_sim['Month'],
             y=df_sim['Year'],
-            colorscale='RdBu_r', # 빨간색이 높음
+            colorscale='Blues', # 깔끔한 블루톤으로 변경
             hoverongaps=False
         ))
         
@@ -574,7 +631,7 @@ elif menu == "📊 AI 분석 센터":
             font={'family': 'Pretendard'}
         )
         st.plotly_chart(fig_heat, use_container_width=True)
-        st.caption("색상이 붉을수록 발생 환자 수가 많음을 의미합니다.")
+        st.caption("색상이 진할수록 발생 환자 수가 많음을 의미합니다.")
 
 
 # ==========================================
@@ -612,7 +669,6 @@ elif menu == "👤 My Page":
             st.markdown("#### 🩺 AI 맞춤 분석 결과")
             warns = []
             
-            # 단일 선택에 따른 로직 (==)
             if age_g == "10대 미만":
                 warns.append(("소아/영유아", "수두, 홍역, 유행성이하선염 등 단체생활 감염병 주의"))
             
