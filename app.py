@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from prophet import Prophet
+# from prophet import Prophet  <-- [오류 해결] 사용하지 않는 무거운 라이브러리 제거
 import plotly.graph_objs as go
 import plotly.express as px
 import time
