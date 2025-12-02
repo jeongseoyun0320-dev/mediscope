@@ -3,9 +3,7 @@ import os
 from pyngrok import ngrok
 import streamlit as st
 
-!pkill -f ngrok
-!pkill -f streamlit
-ngrok.kill()
+
 
 # 2. 필수 패키지 설치
 !pip install streamlit prophet plotly pyngrok
@@ -374,3 +372,4 @@ try:
     print(f"\n✨ 접속 링크 (그래프/로고/데이터 완벽 해결) ✨\n{public_url}")
 except Exception as e:
     print(f"오류: {e}")
+
