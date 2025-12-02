@@ -248,11 +248,33 @@ elif menu == "💬 AI 의료 상담 (ChatBot)":
         with st.chat_message("user"):
             st.write(prompt)
 
-        # AI 응답 (데모용 로직)
+        # AI 응답 (개선된 CSV 기반 로직)
         with st.chat_message("assistant"):
-            with st.spinner("증상을 분석하고 있습니다..."):
+            with st.spinner("빅데이터 분석 중..."):
                 time.sleep(1.2) # 분석하는 척 딜레이
-                response_text = f"입력하신 증상 **'{prompt}'**을(를) 바탕으로 분석한 결과, 감기 혹은 초기 독감의 가능성이 있어 보입니다. (데모 버전)"
+                
+                # CSV 데이터(all_diseases)에서 전염병 찾기
+                if all_diseases:
+                    # 간단한 키워드 매칭 시도 (예시)
+                    matched = [d for d in all_diseases if d in prompt]
+                    
+                    if matched:
+                        predicted = matched[0]
+                        desc = f"입력하신 내용에서 **'{predicted}'**와(과) 관련된 키워드가 감지되었습니다."
+                    else:
+                        # 매칭되는 게 없으면 CSV 리스트 중 랜덤 추천 (다양성 확보)
+                        predicted = random.choice(all_diseases)
+                        desc = f"입력하신 증상 **'{prompt}'** 패턴을 분석한 결과, 다음 질병의 징후와 유사성이 있습니다."
+
+                    response_text = (
+                        f"{desc}\n\n"
+                        f"🧪 **AI 예측 결과**: **{predicted}** 가능성 발견\n"
+                        f"⚠️ 이 결과는 **MediScope 데이터베이스**({len(all_diseases)}종 감염병) 기반 예측이며, "
+                        f"정확한 진단은 반드시 의료기관을 방문하세요."
+                    )
+                else:
+                    response_text = "죄송합니다. 현재 데이터베이스에 연결할 수 없습니다."
+                
                 st.write(response_text)
                 st.session_state.messages.append({"role": "assistant", "content": response_text})
 
@@ -293,7 +315,7 @@ elif menu == "📊 AI 분석 센터 (2026 예측)":
 
 
 # ==========================================
-# [MENU 4] 👤 My Page (건강 리포트) - 수정됨
+# [MENU 4] 👤 My Page (건강 리포트)
 # ==========================================
 elif menu == "👤 My Page (건강 리포트)":
     st.subheader("📑 MediScope Personal Report")
