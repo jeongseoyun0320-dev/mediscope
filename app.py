@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 
 # ---------------------------------------------------------
-# 1. [앱 설정] 가장 먼저 실행
+# [필수] 앱 설정
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="MediScope: AI 감염병 플랫폼",
@@ -18,32 +18,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 2. [핵심] 스마트 캐싱 (버전 호환성 에러 방지)
-# ---------------------------------------------------------
-# Streamlit 버전을 확인하고, 알아서 맞는 기능을 쓰도록 함수를 만듭니다.
-# 이 부분이 있으면 AttributeError가 100% 방지됩니다.
-
-def smart_cache(func):
-    """버전에 따라 적절한 캐시 함수를 연결해주는 데코레이터"""
-    if hasattr(st, 'cache_data'):
-        # 최신 버전 (1.18.0 이상)
-        return st.cache_data(func)
-    else:
-        # 구 버전 (1.18.0 미만) - allow_output_mutation으로 에러 방지
-        return st.cache(allow_output_mutation=True, suppress_st_warning=True)(func)
-
-def smart_clear_cache():
-    """캐시 삭제도 버전에 맞춰서 실행"""
-    try:
-        if hasattr(st, 'cache_data'):
-            st.cache_data.clear()
-        else:
-            st.legacy_caching.clear_cache()
-    except:
-        pass # 그래도 에러나면 그냥 무시하고 진행 (앱이 꺼지는 것보다 나음)
-
-# ---------------------------------------------------------
-# 3. 디자인 (CSS)
+# 1. 디자인 (CSS)
 # ---------------------------------------------------------
 st.markdown("""
     <style>
@@ -55,13 +30,13 @@ st.markdown("""
     
     .hero-box {
         background: linear-gradient(120deg, #5361F2, #3B4CCA);
-        padding: 45px 30px; border-radius: 20px; color: white;
+        padding: 40px 30px; border-radius: 20px; color: white;
         margin-bottom: 30px; box-shadow: 0 10px 25px rgba(83, 97, 242, 0.3); text-align: center;
     }
     .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 5px; }
     
     .stat-card {
-        background-color: white; border-radius: 18px; padding: 22px;
+        background-color: white; border-radius: 18px; padding: 20px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #EAEAEA;
         height: 100%; transition: transform 0.2s;
     }
@@ -73,7 +48,7 @@ st.markdown("""
 
     .stButton > button {
         background-color: #5361F2; color: white; border-radius: 12px;
-        height: 52px; font-weight: bold; border: none; width: 100%;
+        height: 50px; font-weight: bold; border: none; width: 100%;
     }
     .stButton > button:hover { background-color: #3845b5; }
     
@@ -82,18 +57,18 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 4. 데이터 로드 (모든 급수 로드 & 2025 변환)
+# 2. 데이터 로드 (캐시 제거됨 - 무조건 실행됨)
 # ---------------------------------------------------------
-@smart_cache
+# [수정] 충돌을 일으키던 @st.cache 데코레이터를 삭제했습니다.
 def get_disease_data():
     file_path = "법정감염병_월별_신고현황_20251201171522.csv"
     
-    # [비상용] 파일 읽기 실패 시 보여줄 모의 데이터
+    # [비상용] 파일 읽기 실패 시 보여줄 데이터 (4급 삭제됨)
     def generate_mock():
         dates = pd.date_range('2025-01-01', '2025-12-01', freq='MS')
         mock = []
-        # 사용자 데이터에 있는 급수만 예시로 포함
-        disease_list = [("2급", "결핵"), ("2급", "수두"), ("2급", "A형간염"), ("3급", "파상풍"), ("3급", "B형간염")]
+        # [수정] 4급 삭제, 2급/3급 위주로 구성
+        disease_list = [("2급", "결핵"), ("2급", "수두"), ("2급", "A형간염"), ("2급", "백일해"), ("3급", "파상풍"), ("3급", "B형간염")]
         for c, d in disease_list:
             for date in dates:
                 val = np.random.randint(100, 1500)
@@ -102,32 +77,28 @@ def get_disease_data():
         return pd.DataFrame(mock, columns=['ds', 'Class', 'Disease', 'y'])
 
     try:
-        # 파일 읽기
+        # 파일 읽기 시도
         df = pd.read_csv(file_path, header=None, encoding='cp949')
         
-        # 데이터 본문 추출 (2행부터 데이터라고 가정)
+        # 데이터 본문 추출
         df_body = df.iloc[2:].copy()
         
-        # 컬럼명 강제 지정 (데이터 형태가 꼬여도 강제로 맞춤)
-        # 15개 컬럼만 가져옴 (Class, Disease, Total, 1월~12월)
+        # 컬럼명 강제 지정 (15개)
         if df_body.shape[1] >= 15:
             df_body = df_body.iloc[:, :15]
             col_names = ['Class', 'Disease', 'Total'] + [str(i) for i in range(1, 13)]
             df_body.columns = col_names
         else:
-            # 컬럼 개수가 이상하면 그냥 모의 데이터 반환 (에러 방지)
-            return generate_mock()
+            return generate_mock() # 구조가 다르면 모의 데이터
             
-        # '소계' 행 제거 (개별 병만 남김)
         df_body = df_body[df_body['Disease'] != '소계']
         
-        # 가로 -> 세로 변환 (Melt)
+        # Melt
         df_melted = df_body.melt(id_vars=['Class', 'Disease'], value_vars=[str(i) for i in range(1,13)], var_name='Month', value_name='Count')
         
-        # [핵심] 2025년으로 날짜 강제 고정
+        # [핵심] 2025년으로 날짜 고정
         df_melted['ds'] = pd.to_datetime('2025-' + df_melted['Month'].astype(str) + '-01', errors='coerce')
         
-        # 숫자 정제 (콤마 제거, - 제거)
         def clean_count(x):
             s = str(x).strip()
             if s in ['-', '', 'nan', 'None']: return 0
@@ -135,21 +106,20 @@ def get_disease_data():
             except: return 0
             
         df_melted['y'] = df_melted['Count'].apply(clean_count)
-        
-        # 날짜가 제대로 된 것만 남김
         df_final = df_melted.dropna(subset=['ds'])
         
         if df_final.empty: return generate_mock()
         return df_final[['ds', 'Class', 'Disease', 'y']]
 
-    except Exception:
-        # 어떤 에러가 나도 모의 데이터를 반환해서 앱이 안 꺼지게 함
+    except Exception as e:
+        # 파일을 못 찾으면 여기서 모의 데이터가 나갑니다.
+        # (단, 4급은 안 나옵니다)
         return generate_mock()
 
 data = get_disease_data()
 
 # ---------------------------------------------------------
-# 5. 사이드바 구성
+# 3. 사이드바
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3063/3063176.png", width=80)
@@ -159,19 +129,12 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.markdown("---")
-    # 메뉴명 괄호 제거
     menu = st.radio("MENU", ["🏠 홈", "💬 AI 의료 상담", "📊 AI 분석 센터", "👤 My Page"])
     st.markdown("---")
     st.caption("Data: 2025.12.01 Updated")
-    
-    if st.button("🔄 시스템 리셋"):
-        smart_clear_cache()
-        # Rerun 명령어도 버전에 따라 다름
-        try: st.rerun()
-        except: st.experimental_rerun()
 
 # ---------------------------------------------------------
-# 6. 기능 페이지 구현
+# 4. 기능 페이지
 # ---------------------------------------------------------
 
 # [PAGE 1] 홈
@@ -183,11 +146,12 @@ if menu == "🏠 홈":
         </div>
     """, unsafe_allow_html=True)
     
+    # 데이터 체크
     if not data.empty:
         st.subheader("🔥 Monthly Hot Issue (12월 기준)")
         latest = data['ds'].max()
         prev = latest - pd.DateOffset(months=1)
-        # 0이 아닌 데이터 중 상위 3개
+        # 0 초과 데이터 중 상위 3개
         top3 = data[(data['ds'] == latest) & (data['y'] > 0)].sort_values('y', ascending=False).head(3)
         
         if top3.empty:
@@ -238,7 +202,7 @@ if menu == "🏠 홈":
                 fig.update_layout(plot_bgcolor='white', height=300, xaxis_title=None, yaxis_title="발생 수")
                 st.plotly_chart(fig, use_container_width=True)
 
-# [PAGE 2] 챗봇 (다양한 증상 대응)
+# [PAGE 2] 챗봇
 elif menu == "💬 AI 의료 상담":
     st.title("💬 Medi-Bot: Intelligent Triage")
     st.markdown('<div style="background:#FFF3CD; padding:10px; border-radius:5px; color:#856404; font-size:0.9rem; margin-bottom:20px;">⚠️ 본 서비스는 정보 제공 목적이며 의사의 진단을 대신할 수 없습니다.</div>', unsafe_allow_html=True)
@@ -257,7 +221,7 @@ elif menu == "💬 AI 의료 상담":
             "호흡기 감염": {"kwd": ["열", "기침", "가래", "콧물", "인후통", "목", "오한", "근육통", "숨", "폐렴", "감기", "독감"], "cand": ["인플루엔자", "백일해", "폐렴구균"], "dept": "내과/이비인후과"},
             "소화기(장염)": {"kwd": ["복통", "설사", "구토", "메스꺼움", "속", "체한", "배가", "장염", "식중독"], "cand": ["A형간염", "노로바이러스", "장티푸스"], "dept": "내과"},
             "피부 질환": {"kwd": ["발진", "두드러기", "수포", "물집", "가려움", "피부", "따가움", "반점"], "cand": ["수두", "홍역", "수족구병"], "dept": "피부과"},
-            "발열/매개체": {"kwd": ["벌레", "물린", "산", "진드기", "야외"], "cand": ["쯔쯔가무시증", "말라리아", "일본뇌염"], "dept": "감염내과"}
+            "발열성/매개체": {"kwd": ["벌레", "물린", "산", "진드기", "야외"], "cand": ["쯔쯔가무시증", "말라리아", "일본뇌염", "뎅기열"], "dept": "감염내과"}
         }
         
         best_cat = None; max_score = 0
@@ -282,7 +246,7 @@ elif menu == "💬 AI 의료 상담":
             with st.spinner("분석 중..."): time.sleep(1); st.markdown(resp)
         st.session_state.messages.append({"role": "assistant", "content": resp})
 
-# [PAGE 3] AI 분석 센터 (파란박스 위치 조정 & 2026 예측)
+# [PAGE 3] AI 분석 센터
 elif menu == "📊 AI 분석 센터":
     st.title("📊 AI Analytics Center (2026 Future)")
     st.markdown("2025년 데이터를 학습하여 **2026년**의 확산 패턴을 예측합니다.")
@@ -303,7 +267,6 @@ elif menu == "📊 AI 분석 센터":
             
             with tab1:
                 with st.spinner("2026년 예측 중..."):
-                    # 계절성 강제 활성화 (데이터 부족 에러 방지)
                     m = Prophet(yearly_seasonality=True)
                     m.fit(df_t[['ds', 'y']])
                     future = m.make_future_dataframe(periods=12, freq='MS')
@@ -339,7 +302,7 @@ elif menu == "📊 AI 분석 센터":
                 fig_h = px.density_heatmap(piv, x='MonthStr', y='Disease', z='y', color_continuous_scale='Redor', title="질병별 발생 강도")
                 st.plotly_chart(fig_h, use_container_width=True)
 
-# [PAGE 4] My Page (직업 추가: 학생, 무직)
+# [PAGE 4] My Page
 elif menu == "👤 My Page":
     st.title("👤 My Health Profile")
     col_p, col_r = st.columns([1, 2])
